@@ -1,0 +1,5 @@
+onlyBuiltDependencies:
+  - '@angular/cli'
+  - core-js
+  - grpc
+  - protobufjs
