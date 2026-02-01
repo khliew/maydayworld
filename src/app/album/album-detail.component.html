@@ -1,26 +1,32 @@
 <div class="container">
-  <ng-container *ngIf="album">
+  @if (album$ | async; as album) {
     <div class="album-header">
       <div class="album-title">
-        <div class="title-chinese">{{album.title.chinese.zht}}</div>
+        <div class="title-chinese">{{ album.title.chinese.zht }}</div>
         <div class="title-translation">
-          <span class="trans-pinyin">{{album.title.chinese.zhp}}</span>
-          <br>
-          <span class="trans-english primary-dark">{{album.title.chinese.eng}}</span>
+          <span class="trans-pinyin">{{ album.title.chinese.zhp }}</span>
+          <br />
+          <span class="trans-english primary-dark">{{ album.title.chinese.eng }}</span>
         </div>
-        <div class="title-english">{{album.title.english}}</div>
+        <div class="title-english">{{ album.title.english }}</div>
       </div>
-      <div class="release-date">{{album.releaseDate | date:'longDate'}}</div>
+      <div class="release-date">{{ album.releaseDate | date: 'longDate' }}</div>
     </div>
     <mat-nav-list class="track-list">
-      <ng-container *ngFor="let trackKey of trackKeys;">
-        <a *ngIf="album.songs[trackKey]; let song" mat-list-item [routerLink]="['/album', album.id, 'song', song.id]"
-          class="track-item" [class.disabled]="song.disabled">
-          <div class="track-number">{{trackKey}}</div>
-          <div matLine class="track-chinese">{{song.title.chinese.zht}}</div>
-          <div matLine class="track-english">{{song.title.english}}</div>
-        </a>
-      </ng-container>
+      @for (trackKey of trackKeys$ | async; track trackKey) {
+        @if (album.songs[trackKey]; as song) {
+          <a
+            mat-list-item
+            [routerLink]="['/album', album.id, 'song', song.id]"
+            class="track-item"
+            [class.disabled]="song.disabled"
+          >
+            <div matListItemMeta class="track-number">{{ trackKey }}</div>
+            <span matListItemTitle class="track-chinese">{{ song.title.chinese.zht }}</span>
+            <span matListItemLine class="track-english">{{ song.title.english }}</span>
+          </a>
+        }
+      }
     </mat-nav-list>
-  </ng-container>
+  }
 </div>

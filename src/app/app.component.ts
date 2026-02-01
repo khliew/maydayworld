@@ -1,17 +1,31 @@
-import { Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
-import { MediaChange, MediaObserver } from '@angular/flex-layout';
-import { MatSidenav } from '@angular/material/sidenav';
-import { NavigationEnd, Router } from '@angular/router';
+import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
+import { CommonModule } from '@angular/common';
+import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { MatButtonModule } from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { NavigationEnd, Router, RouterLink, RouterOutlet } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { filter, map } from 'rxjs/operators';
+import { FooterComponent } from './footer/footer.component';
 import { SidenavService } from './services/sidenav.service';
 
 @Component({
   selector: 'app-root',
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css']
+  styleUrls: ['./app.component.css'],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RouterOutlet,
+    MatSidenavModule,
+    MatToolbarModule,
+    MatIconModule,
+    MatButtonModule,
+    FooterComponent,
+  ],
 })
-export class AppComponent implements OnInit, OnDestroy {
+export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
   @ViewChild(MatSidenav, { static: false }) sidenav: MatSidenav;
 
   analyticsEnabled: boolean;
@@ -21,7 +35,11 @@ export class AppComponent implements OnInit, OnDestroy {
 
   mediaSub: Subscription;
 
-  constructor(private router: Router, private sidenavService: SidenavService, private mediaObserver: MediaObserver) {
+  constructor(
+    private router: Router,
+    private sidenavService: SidenavService,
+    private breakpointObserver: BreakpointObserver,
+  ) {
     this.analyticsEnabled = typeof (window as any).ga === 'function';
     this.sidenavEnabled = false;
   }
@@ -34,54 +52,55 @@ export class AppComponent implements OnInit, OnDestroy {
           (window as any).ga('send', 'pageview');
         }
 
-        if (this.sidenav.mode === 'over') {
+        if (this.sidenav && this.sidenav.mode === 'over') {
           this.sidenav.close();
         }
       }
     });
+  }
 
-    this.sidenavSub = this.sidenavService.enable$
-      .subscribe(enabled => {
-        this.sidenavEnabled = enabled;
+  ngAfterViewInit() {
+    this.sidenavSub = this.sidenavService.enable$.subscribe(enabled => {
+      this.sidenavEnabled = enabled;
 
-        if (this.sidenav.mode === 'side') {
-          if (enabled) {
-            this.sidenav.open();
-          } else {
-            this.sidenav.close();
-          }
+      if (this.sidenav && this.sidenav.mode === 'side') {
+        if (enabled) {
+          this.sidenav.open();
         } else {
-          if (enabled) {
-            // TODO: show menu button
-          } else {
-            // TODO: hide menu button
-          }
-        }
-      });
-
-    this.mediaSub = this.mediaObserver.asObservable()
-      .pipe(
-        filter((changes: MediaChange[]) => changes.length > 0),
-        map((changes: MediaChange[]) => changes[0])
-      ).subscribe((change: MediaChange) => {
-        if (change.mqAlias === 'xs') {
-          this.sidenav.fixedTopGap = 56;
-          this.sidenav.mode = 'over';
-          this.sidenav.disableClose = false;
           this.sidenav.close();
-        } else {
-          this.sidenav.fixedTopGap = 64;
-          this.sidenav.mode = 'side';
-          this.sidenav.disableClose = true;
-          if (this.sidenavService.enabled) {
-            this.sidenav.open();
-          }
         }
-      });
+      } else {
+        if (enabled) {
+          // TODO: show menu button
+        } else {
+          // TODO: hide menu button
+        }
+      }
+    });
+
+    this.mediaSub = this.breakpointObserver.observe([Breakpoints.XSmall]).subscribe(result => {
+      if (!this.sidenav) return;
+
+      if (result.matches) {
+        this.sidenav.fixedTopGap = 56;
+        this.sidenav.mode = 'over';
+        this.sidenav.disableClose = false;
+        this.sidenav.close();
+      } else {
+        this.sidenav.fixedTopGap = 64;
+        this.sidenav.mode = 'side';
+        this.sidenav.disableClose = true;
+        if (this.sidenavService.enabled) {
+          this.sidenav.open();
+        }
+      }
+    });
   }
 
   ngOnDestroy() {
     this.sidenavSub.unsubscribe();
-    this.mediaSub.unsubscribe();
+    if (this.mediaSub) {
+      this.mediaSub.unsubscribe();
+    }
   }
 }

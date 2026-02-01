@@ -20,17 +20,9 @@ describe('SongListComponent', () => {
     activatedRoute = { data: of({ album: testAlbum }), snapshot: {} } as any;
 
     TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule
-      ],
-      declarations: [
-        SongListComponent,
-        RouterLinkDirectiveStub
-      ],
-      providers: [{ provide: ActivatedRoute, useValue: activatedRoute }]
-    })
-      .compileComponents();
+      imports: [SharedModule, RouterTestingModule, SongListComponent, RouterLinkDirectiveStub],
+      providers: [{ provide: ActivatedRoute, useValue: activatedRoute }],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(SongListComponent);
     comp = fixture.componentInstance;

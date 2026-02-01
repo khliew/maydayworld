@@ -16,8 +16,8 @@ describe('FooterComponent ', () => {
     TestBed.configureTestingModule({
       providers: [
         FooterComponent,
-        { provide: EnvironmentService, useClass: EnvironmentServiceStub }
-      ]
+        { provide: EnvironmentService, useClass: EnvironmentServiceStub },
+      ],
     });
 
     comp = TestBed.get(FooterComponent);
@@ -36,13 +36,9 @@ describe('FooterComponent (DOM)', () => {
 
   beforeEach(async(() => {
     TestBed.configureTestingModule({
-      declarations: [
-        FooterComponent,
-        RouterLinkDirectiveStub
-      ],
-      providers: [{ provide: EnvironmentService, useClass: EnvironmentServiceStub }]
-    })
-      .compileComponents();
+      imports: [FooterComponent, RouterLinkDirectiveStub],
+      providers: [{ provide: EnvironmentService, useClass: EnvironmentServiceStub }],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(FooterComponent);
     comp = fixture.componentInstance;

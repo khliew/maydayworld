@@ -2,12 +2,31 @@
   <h2>Log In</h2>
   <form [formGroup]="credentials">
     <mat-form-field class="access">
-      <input matInput class="email" type="email" formControlName="email" placeholder="Email" autofocus>
+      <input
+        matInput
+        class="email"
+        type="email"
+        formControlName="email"
+        placeholder="Email"
+        autofocus
+      />
     </mat-form-field>
     <mat-form-field class="access">
-      <input matInput class="password" type="password" formControlName="password" placeholder="Password">
+      <input
+        matInput
+        class="password"
+        type="password"
+        formControlName="password"
+        placeholder="Password"
+      />
     </mat-form-field>
-    <button mat-flat-button color="primary" class="log-in" (click)="logIn()" [disabled]="credentials.disabled">
+    <button
+      mat-flat-button
+      color="primary"
+      class="log-in"
+      (click)="logIn()"
+      [disabled]="credentials.disabled"
+    >
       Log in
     </button>
   </form>

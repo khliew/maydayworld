@@ -1,15 +1,31 @@
 <mat-toolbar color="primary" class="toolbar">
-  <button mat-icon-button fxHide [fxShow.lt-sm]="sidenavEnabled" (click)="sidenav.toggle()">
+  <button
+    mat-icon-button
+    (click)="sidenav.toggle()"
+    class="menu-button"
+    [class.show]="sidenavEnabled"
+  >
     <mat-icon>menu</mat-icon>
   </button>
-  <a mat-flat-button routerLink="/" class="toolbar-title" [ngClass.lt-sm]="{ 'with-menu': sidenavEnabled}"
-    disableRipple>
-    <img src="../../assets/icon-toolbar.png" class="title-icon">
+  <a
+    mat-button
+    routerLink="/"
+    class="toolbar-title"
+    [class.with-menu]="sidenavEnabled"
+    disableRipple
+  >
+    <img src="../../assets/icon-toolbar.png" class="title-icon" />
     <span class="title-text">Mayday World 五月天世界</span>
   </a>
 </mat-toolbar>
 <mat-sidenav-container class="sidenav-container mat-typography">
-  <mat-sidenav #sidenav class="sidenav" role="navigation" fixedInViewport="true" autoFocus="false">
+  <mat-sidenav
+    #sidenav
+    class="sidenav"
+    role="navigation"
+    [fixedInViewport]="true"
+    [autoFocus]="false"
+  >
     <router-outlet name="sidenav"></router-outlet>
   </mat-sidenav>
   <mat-sidenav-content class="sidenav-content">

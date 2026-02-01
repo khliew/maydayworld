@@ -19,16 +19,9 @@ describe('AlbumsComponent', () => {
     dataService.getDiscography.and.returnValue(asyncData(testDiscography));
 
     TestBed.configureTestingModule({
-      imports: [RouterTestingModule],
-      declarations: [
-        AlbumsComponent,
-        RouterLinkDirectiveStub
-      ],
-      providers: [
-        { provide: DataService, useValue: dataService },
-      ]
-    })
-      .compileComponents();
+      imports: [RouterTestingModule, AlbumsComponent, RouterLinkDirectiveStub],
+      providers: [{ provide: DataService, useValue: dataService }],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(AlbumsComponent);
     comp = fixture.componentInstance;

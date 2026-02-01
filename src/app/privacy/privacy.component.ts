@@ -5,10 +5,13 @@ import { TitleService } from '../services/title.service';
 @Component({
   selector: 'app-privacy',
   templateUrl: './privacy.component.html',
-  styleUrls: ['./privacy.component.css']
+  styleUrls: ['./privacy.component.css'],
 })
 export class PrivacyComponent {
-  constructor(private titleService: TitleService, private sidenavService: SidenavService) {
+  constructor(
+    private titleService: TitleService,
+    private sidenavService: SidenavService,
+  ) {
     this.sidenavService.setEnabled(false);
     this.titleService.resetTitle();
   }

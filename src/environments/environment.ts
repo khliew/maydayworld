@@ -14,15 +14,6 @@ export const environment = {
     projectId: 'maydayworld-55555',
     storageBucket: 'maydayworld-55555.appspot.com',
     messagingSenderId: '507045645226',
-    appId: '1:507045645226:web:7bfcb838e1a8cb47'
-  }
+    appId: '1:507045645226:web:7bfcb838e1a8cb47',
+  },
 };
-
-/*
- * For easier debugging in development mode, you can import the following file
- * to ignore zone related error stack frames such as `zone.run`, `zoneDelegate.invokeTask`.
- *
- * This import should be commented out in production mode because it will have a negative impact
- * on performance if an error is thrown.
- */
-// import 'zone.js/dist/zone-error';  // Included with Angular CLI.

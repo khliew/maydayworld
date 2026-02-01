@@ -10,14 +10,25 @@
 .section-header {
   margin-bottom: 16px;
 }
-.album-list {
+.album-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
 }
+
+@media (max-width: 600px) {
+  .album-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .album-card {
   color: black;
   text-decoration: none;
   border: 1px solid gray;
   border-radius: 4px;
-  padding: 16px;
+  padding: 16px; 
+  height: auto !important; 
 }
 .album-card:hover {
   background-color: rgba(0, 0, 0, 0.04);
@@ -32,9 +43,15 @@
 }
 .title-chinese {
   font-size: 18px;
+  color: black;
+  word-wrap: break-word !important; 
+  white-space: pre-wrap !important; 
 }
 .title-english {
   font-size: 16px;
+  color: black;
+  word-wrap: break-word !important;
+  white-space: pre-wrap !important; 
 }
 .release-date {
   font-size: 16px;

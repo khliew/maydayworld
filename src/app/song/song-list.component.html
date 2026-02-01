@@ -1,21 +1,29 @@
-<ng-container *ngIf="album">
+@if (album$ | async; as album) {
   <a mat-icon-button [routerLink]="['../../../']" class="go-up">
     <mat-icon>arrow_back</mat-icon>
   </a>
   <div class="album-title">
-    <div class="title-chinese">{{album.title.chinese.zht}}</div>
+    <div class="title-chinese">{{ album.title.chinese.zht }}</div>
     <div class="title-translation">
-      <span class="trans-pinyin">{{album.title.chinese.zhp}}</span>
-      <br>
-      <span class="trans-english primary-dark">{{album.title.chinese.eng}}</span>
+      <span class="trans-pinyin">{{ album.title.chinese.zhp }}</span>
+      <br />
+      <span class="trans-english primary-dark">{{ album.title.chinese.eng }}</span>
     </div>
-    <div class="title-english">{{album.title.english}}</div>
+    <div class="title-english">{{ album.title.english }}</div>
   </div>
   <mat-nav-list class="track-list">
-    <ng-container *ngFor="let trackKey of trackKeys;">
-      <a mat-list-item *ngIf="album.songs[trackKey]; let song" [routerLink]="['/album', album.id, 'song', song.id]"
-        class="track-item" [class.disabled]="song.disabled" routerLinkActive="active-nav-item">{{trackKey}}.
-        {{song.title.chinese.zht}}</a>
-    </ng-container>
+    @for (trackKey of trackKeys$ | async; track trackKey) {
+      @if (album.songs[trackKey]; as song) {
+        <a
+          mat-list-item
+          [routerLink]="['/album', album.id, 'song', song.id]"
+          class="track-item"
+          [class.disabled]="song.disabled"
+          routerLinkActive="active-nav-item"
+        >
+          <span matListItemTitle>{{ trackKey }}. {{ song.title.chinese.zht }}</span>
+        </a>
+      }
+    }
   </mat-nav-list>
-</ng-container>
+}

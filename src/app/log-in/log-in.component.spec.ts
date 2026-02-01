@@ -1,16 +1,14 @@
 import { async, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { Auth } from '@angular/fire/auth';
 import { FormBuilder } from '@angular/forms';
 import { Router } from '@angular/router';
 import { RouterTestingModule } from '@angular/router/testing';
-import { asyncData, click, newEvent, RouterLinkDirectiveStub } from 'src/testing';
+import { click, newEvent, RouterLinkDirectiveStub } from 'src/testing';
 import { SidenavServiceStub, TitleServiceStub } from '../model/testing';
 import { DataService } from '../services/data.service';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { SharedModule } from '../shared/shared.module';
 import { LogInComponent } from './log-in.component';
-import { AngularFireAuth } from '@angular/fire/auth';
-import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
 
 describe('LogInComponent', () => {
   let comp: LogInComponent;
@@ -28,30 +26,21 @@ describe('LogInComponent', () => {
     routerSpy = jasmine.createSpyObj('Router', ['navigate']);
     authSpy = jasmine.createSpyObj('FirebaseAuth', ['signInWithEmailAndPassword']);
     afAuth = {
-      auth: authSpy
+      auth: authSpy,
     };
     formBuilder = new FormBuilder();
 
     TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule,
-        BrowserAnimationsModule
-      ],
-      declarations: [
-        LogInComponent,
-        RouterLinkDirectiveStub
-      ],
+      imports: [RouterTestingModule, LogInComponent, RouterLinkDirectiveStub],
       providers: [
         { provide: DataService, useValue: dataServiceSpy },
         { provide: FormBuilder, useValue: formBuilder },
         { provide: Router, useValue: routerSpy },
         { provide: SidenavService, useClass: SidenavServiceStub },
         { provide: TitleService, useClass: TitleServiceStub },
-        { provide: AngularFireAuth, useValue: afAuth }
-      ]
-    })
-      .compileComponents();
+        { provide: Auth, useValue: afAuth },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(LogInComponent);
     comp = fixture.componentInstance;

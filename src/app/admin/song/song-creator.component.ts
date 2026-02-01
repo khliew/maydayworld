@@ -1,5 +1,11 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { MatButton } from '@angular/material/button';
+import { MatCard } from '@angular/material/card';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatOption, MatSelect } from '@angular/material/select';
+import { MatTooltip } from '@angular/material/tooltip';
 import { Line, Song, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
 import { LyricsParser } from './lyrics-parser';
@@ -7,7 +13,19 @@ import { LyricsParser } from './lyrics-parser';
 @Component({
   selector: 'app-song-creator',
   templateUrl: './song-creator.component.html',
-  styleUrls: ['./song-creator.component.css']
+  styleUrls: ['./song-creator.component.css'],
+  imports: [
+    MatFormField,
+    MatSelect,
+    ReactiveFormsModule,
+    MatOption,
+    MatInput,
+    MatCheckbox,
+    MatTooltip,
+    MatLabel,
+    MatButton,
+    MatCard,
+  ],
 })
 export class SongCreatorComponent implements OnInit {
   search = this.fb.control('');
@@ -19,7 +37,7 @@ export class SongCreatorComponent implements OnInit {
     lyricist: [''],
     composer: [''],
     arranger: [''],
-    lyrics: ['']
+    lyrics: [''],
   });
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
@@ -32,28 +50,29 @@ export class SongCreatorComponent implements OnInit {
 
   searchError: string;
 
-  constructor(private fb: FormBuilder, private adminService: AdminService) {
+  constructor(
+    private fb: FormBuilder,
+    private adminService: AdminService,
+  ) {
     this.lyricsParser = new LyricsParser();
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';
 
-    this.search.valueChanges
-      .subscribe(value => {
-        this.searchSong(value);
-      });
+    this.search.valueChanges.subscribe(value => {
+      this.searchSong(value);
+    });
   }
 
   ngOnInit() {
     this.search.disable({ emitEvent: false });
-    this.adminService.getSongs()
-      .subscribe(songs => {
-        this.songMds = songs.sort((a, b) => {
-          return a.id.localeCompare(b.id); // sort by id
-        });
-
-        this.search.enable({ emitEvent: false });
+    this.adminService.getSongs().subscribe(songs => {
+      this.songMds = songs.sort((a, b) => {
+        return a.id.localeCompare(b.id); // sort by id
       });
+
+      this.search.enable({ emitEvent: false });
+    });
   }
 
   setFormsEnabled(enabled: boolean) {
@@ -72,26 +91,29 @@ export class SongCreatorComponent implements OnInit {
       this.searchError = '';
       this.setFormsEnabled(false);
 
-      this.adminService.getSong(songId)
-        .subscribe(song => {
-          this.setFormsEnabled(true);
+      this.adminService.getSong(songId).subscribe(song => {
+        this.setFormsEnabled(true);
 
-          if (song) {
-            this.fillForm(song);
-          } else {
-            this.searchError = `Song not found: ${songId}`;
-          }
-        });
+        if (song) {
+          this.fillForm(song);
+        } else {
+          this.searchError = `Song not found: ${songId}`;
+        }
+      });
     }
   }
 
   fillForm(song: Song) {
     this.songForm.get('songId').setValue(song.id);
 
-    this.songForm.get('disabled').setValue(typeof song.disabled !== 'undefined' ? song.disabled : false);
+    this.songForm
+      .get('disabled')
+      .setValue(typeof song.disabled !== 'undefined' ? song.disabled : false);
 
     const title = song.title;
-    this.songForm.get('chineseTitle').setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
+    this.songForm
+      .get('chineseTitle')
+      .setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
     this.songForm.get('englishTitle').setValue(title.english);
 
     this.songForm.get('lyricist').setValue(song.lyricist);
@@ -141,7 +163,7 @@ export class SongCreatorComponent implements OnInit {
 
     song.title = this.parseTitle(
       this.songForm.get('chineseTitle').value,
-      this.songForm.get('englishTitle').value
+      this.songForm.get('englishTitle').value,
     );
 
     song.lyrics = this.parseLyrics(this.songForm.get('lyrics').value);
@@ -166,7 +188,7 @@ export class SongCreatorComponent implements OnInit {
       title.chinese = {
         zht: parts[0] && parts[0].trim(),
         zhp: parts[1] && parts[1].trim(),
-        eng: parts[2] && parts[2].trim()
+        eng: parts[2] && parts[2].trim(),
       };
     }
 
@@ -186,13 +208,15 @@ export class SongCreatorComponent implements OnInit {
 
     this.response = '';
     this.setFormsEnabled(false);
-    this.adminService.setSong(this.output.id, this.output)
-      .subscribe(() => {
+    this.adminService.setSong(this.output.id, this.output).subscribe(
+      () => {
         this.response = 'Song saved!';
         this.setFormsEnabled(true);
-      }, err => {
+      },
+      err => {
         this.response = err;
         this.setFormsEnabled(true);
-      });
+      },
+    );
   }
 }

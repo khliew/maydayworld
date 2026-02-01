@@ -25,21 +25,13 @@ describe('AlbumDetailsComponent', () => {
     activatedRoute = { data: of({ album: testAlbum }) } as any;
 
     TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule
-      ],
-      declarations: [
-        AlbumDetailComponent,
-        RouterLinkDirectiveStub
-      ],
+      imports: [SharedModule, RouterTestingModule, AlbumDetailComponent, RouterLinkDirectiveStub],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub }
-      ]
-    })
-      .compileComponents();
+        { provide: TitleService, useClass: TitleServiceStub },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(AlbumDetailComponent);
     comp = fixture.componentInstance;
@@ -59,7 +51,7 @@ describe('AlbumDetailsComponent', () => {
     expect(sidenavService.setEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('should set the album\'s Chinese title as the document title', () => {
+  it("should set the album's Chinese title as the document title", () => {
     expect(titleService.setTitle).toHaveBeenCalledWith(testAlbum.title.chinese.zht);
   });
 
@@ -111,17 +103,17 @@ describe('AlbumDetailsComponent', () => {
       songEl = albumDetailEl.querySelector('.track-item');
     });
 
-    it('should display a track\'s number', () => {
+    it("should display a track's number", () => {
       const el: HTMLElement = songEl.querySelector('.track-number');
       expect(el.textContent).toEqual('1');
     });
 
-    it('should display a track\'s Chinese title', () => {
+    it("should display a track's Chinese title", () => {
       const el: HTMLElement = songEl.querySelector('.track-chinese');
       expect(el.textContent).toEqual(testSong.title.chinese.zht);
     });
 
-    it('should display a track\'s English title', () => {
+    it("should display a track's English title", () => {
       const el: HTMLElement = songEl.querySelector('.track-english');
       expect(el.textContent).toEqual(testSong.title.english);
     });

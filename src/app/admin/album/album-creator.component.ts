@@ -1,14 +1,46 @@
 import { Component, OnInit } from '@angular/core';
-import { FormBuilder } from '@angular/forms';
-import * as moment from 'moment';
-import { combineLatest } from 'rxjs';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { MatButton, MatIconButton } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatNativeDateModule } from '@angular/material/core';
+import {
+  MatDatepicker,
+  MatDatepickerInput,
+  MatDatepickerModule,
+  MatDatepickerToggle,
+} from '@angular/material/datepicker';
+import { MatIcon } from '@angular/material/icon';
+import { MatFormField, MatInput, MatLabel, MatPrefix, MatSuffix } from '@angular/material/input';
+import { MatOption, MatSelect } from '@angular/material/select';
+import { MatTooltip } from '@angular/material/tooltip';
+import { combineLatest, Observable } from 'rxjs';
 import { Album, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
 
 @Component({
   selector: 'app-album-creator',
   templateUrl: './album-creator.component.html',
-  styleUrls: ['./album-creator.component.css']
+  styleUrls: ['./album-creator.component.css'],
+  imports: [
+    MatFormField,
+    MatSelect,
+    ReactiveFormsModule,
+    MatOption,
+    MatInput,
+    MatNativeDateModule,
+    MatDatepickerModule,
+    MatCheckbox,
+    MatTooltip,
+    MatLabel,
+    MatDatepickerInput,
+    MatDatepickerToggle,
+    MatSuffix,
+    MatDatepicker,
+    MatPrefix,
+    MatIconButton,
+    MatIcon,
+    MatButton,
+  ],
 })
 export class AlbumCreatorComponent implements OnInit {
   search = this.fb.control('');
@@ -20,7 +52,7 @@ export class AlbumCreatorComponent implements OnInit {
     englishTitle: [''],
     releaseDate: [{ value: '', disabled: true }],
     albumType: ['studio'],
-    tracks: this.tracksForm
+    tracks: this.tracksForm,
   });
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
@@ -38,7 +70,10 @@ export class AlbumCreatorComponent implements OnInit {
   removedTracks: Set<string>;
   resetting: boolean;
 
-  constructor(private fb: FormBuilder, private adminService: AdminService) {
+  constructor(
+    private fb: FormBuilder,
+    private adminService: AdminService,
+  ) {
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';
@@ -46,30 +81,29 @@ export class AlbumCreatorComponent implements OnInit {
     this.removedTracks = new Set<string>();
     this.originalTracks = {};
 
-    this.search.valueChanges
-      .subscribe(value => this.fillForm(this.albums[value]));
+    this.search.valueChanges.subscribe(value => {
+      this.searchAlbum(value);
+    });
   }
 
   ngOnInit() {
     this.search.disable({ emitEvent: false });
-    this.adminService.getAlbums()
-      .subscribe(albums => {
-        this.albums = albums.sort((a, b) => {
-          return a.id.localeCompare(b.id); // sort by id
-        });
-
-        this.search.enable({ emitEvent: false });
+    this.adminService.getAlbums().subscribe(albums => {
+      this.albums = albums.sort((a, b) => {
+        return a.id.localeCompare(b.id); // sort by id
       });
+
+      this.search.enable({ emitEvent: false });
+    });
 
     this.tracksForm.disable();
-    this.adminService.getSongs()
-      .subscribe(songs => {
-        this.songs = songs.sort((a, b) => {
-          return a.id.localeCompare(b.id); // sort by id
-        });
-
-        this.tracksForm.enable();
+    this.adminService.getSongs().subscribe(songs => {
+      this.songs = songs.sort((a, b) => {
+        return a.id.localeCompare(b.id); // sort by id
       });
+
+      this.tracksForm.enable();
+    });
   }
 
   searchAlbum(albumId: string) {
@@ -78,26 +112,29 @@ export class AlbumCreatorComponent implements OnInit {
       this.searchError = '';
       this.setFormsEnabled(false);
 
-      this.adminService.getAlbum(albumId)
-        .subscribe(album => {
-          this.setFormsEnabled(true);
+      this.adminService.getAlbum(albumId).subscribe(album => {
+        this.setFormsEnabled(true);
 
-          if (album) {
-            this.fillForm(album);
-          } else {
-            this.searchError = `Album not found: ${albumId}`;
-          }
-        });
+        if (album) {
+          this.fillForm(album);
+        } else {
+          this.searchError = `Album not found: ${albumId}`;
+        }
+      });
     }
   }
 
   fillForm(album: Album) {
     this.albumForm.get('albumId').setValue(album.id);
 
-    this.albumForm.get('disabled').setValue(typeof album.disabled !== 'undefined' ? album.disabled : false);
+    this.albumForm
+      .get('disabled')
+      .setValue(typeof album.disabled !== 'undefined' ? album.disabled : false);
 
     const title = album.title;
-    this.albumForm.get('chineseTitle').setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
+    this.albumForm
+      .get('chineseTitle')
+      .setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
     this.albumForm.get('englishTitle').setValue(title.english);
 
     this.albumForm.get('releaseDate').setValue(album.releaseDate);
@@ -158,11 +195,11 @@ export class AlbumCreatorComponent implements OnInit {
 
     album.title = this.parseTitle(
       this.albumForm.get('chineseTitle').value,
-      this.albumForm.get('englishTitle').value
+      this.albumForm.get('englishTitle').value,
     );
 
     album.releaseDate = this.parseDate(this.albumForm.get('releaseDate').value);
-    album.type = this.albumForm.get('albumType').value;
+    album.type = this.albumForm.get('albumType').value as any;
 
     return album;
   }
@@ -178,41 +215,37 @@ export class AlbumCreatorComponent implements OnInit {
 
   createTrackForm() {
     const control = this.fb.control('');
-    control.valueChanges
-      .subscribe(
-        value => {
-          if (this.resetting) {
-            return;
-          }
+    control.valueChanges.subscribe(value => {
+      if (this.resetting) {
+        return;
+      }
 
-          const index = this.tracksForm.controls.findIndex(item => item === control);
+      const index = this.tracksForm.controls.findIndex(item => item === control);
 
-          if (index !== -1) {
-            const oldValue = this.addedTracks[index];
-            this.addedTracks[index] = value;
+      if (index !== -1) {
+        const oldValue = this.addedTracks[index];
+        this.addedTracks[index] = value;
 
-            if (!!oldValue) {
-              this.removedTracks.add(oldValue);
-            }
-
-            if (!!value) {
-              this.removedTracks.delete(value);
-            }
-          }
-
-          // clear other track controls that has the currently selected value
-          this.resetting = true;
-          for (let i = 0; i < this.tracksForm.controls.length; i++) {
-            const item = this.tracksForm.controls[i];
-            if (item !== control && item.value === value) {
-              item.reset();
-              this.addedTracks[i] = '';
-            }
-          }
-          this.resetting = false;
-
+        if (!!oldValue) {
+          this.removedTracks.add(oldValue);
         }
-      );
+
+        if (!!value) {
+          this.removedTracks.delete(value);
+        }
+      }
+
+      // clear other track controls that has the currently selected value
+      this.resetting = true;
+      for (let i = 0; i < this.tracksForm.controls.length; i++) {
+        const item = this.tracksForm.controls[i];
+        if (item !== control && item.value === value) {
+          item.reset();
+          this.addedTracks[i] = '';
+        }
+      }
+      this.resetting = false;
+    });
     return control;
   }
 
@@ -251,19 +284,26 @@ export class AlbumCreatorComponent implements OnInit {
       title.chinese = {
         zht: parts[0] && parts[0].trim(),
         zhp: parts[1] && parts[1].trim(),
-        eng: parts[2] && parts[2].trim()
+        eng: parts[2] && parts[2].trim(),
       };
     }
 
     return title;
   }
 
-  parseDate(date: string): string {
-    return moment(date).format('YYYY-MM-DD');
+  parseDate(date: any): string {
+    const d = new Date(date);
+    const year = d.getFullYear();
+    const month = ('0' + (d.getMonth() + 1)).slice(-2);
+    const day = ('0' + d.getDate()).slice(-2);
+    return `${year}-${month}-${day}`;
   }
 
   parseSongs(songIds: string): string[] {
-    return songIds.split('\n').map(token => token.trim()).filter(token => token.length > 0);
+    return songIds
+      .split('\n')
+      .map(token => token.trim())
+      .filter(token => token.length > 0);
   }
 
   save() {
@@ -275,11 +315,11 @@ export class AlbumCreatorComponent implements OnInit {
 
     this.response = '';
     this.setFormsEnabled(false);
-    const results = [];
+    const results: Observable<any>[] = [];
 
     results.push(this.adminService.setAlbum(this.output.id, this.output));
 
-    const added: { trackNum: number; songId: string; }[] = [];
+    const added: { trackNum: number; songId: string }[] = [];
     for (let i = 0; i < this.addedTracks.length; i++) {
       if (!!this.addedTracks[i] && this.originalTracks[i + 1] !== this.addedTracks[i]) {
         added.push({ trackNum: i + 1, songId: this.addedTracks[i] });
@@ -290,15 +330,17 @@ export class AlbumCreatorComponent implements OnInit {
 
     results.push(this.adminService.setAlbumSongs(this.output.id, added, removed));
 
-    combineLatest(results)
-      .subscribe(() => {
+    combineLatest(results).subscribe({
+      next: v => {
         this.response = 'Album saved!';
         this.setFormsEnabled(true);
 
         this.updateOriginalTracksAfterSave();
-      }, err => {
+      },
+      error: err => {
         this.response = err;
         this.setFormsEnabled(true);
-      });
+      },
+    });
   }
 }

@@ -23,21 +23,13 @@ describe('SongDetailComponent', () => {
     activatedRoute = { data: of({ song: testSong }) } as any;
 
     TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule
-      ],
-      declarations: [
-        SongDetailComponent,
-        RouterLinkDirectiveStub
-      ],
+      imports: [SharedModule, RouterTestingModule, SongDetailComponent, RouterLinkDirectiveStub],
       providers: [
         { provide: ActivatedRoute, useValue: activatedRoute },
         { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub }
-      ]
-    })
-      .compileComponents();
+        { provide: TitleService, useClass: TitleServiceStub },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(SongDetailComponent);
     comp = fixture.componentInstance;
@@ -57,7 +49,7 @@ describe('SongDetailComponent', () => {
     expect(sidenavService.setEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('should set the song\'s Chinese title as the document title', () => {
+  it("should set the song's Chinese title as the document title", () => {
     expect(titleService.setTitle).toHaveBeenCalledWith(testSong.title.chinese.zht);
   });
 
@@ -123,12 +115,18 @@ describe('SongDetailComponent', () => {
       const expectedPinyin = line.zhp;
       const expectedEnglish = line.eng;
 
-      expect(lineEl.querySelector('.lyrics-chinese').textContent)
-        .toEqual(expectedChinese, 'should be Chinese lyrics line');
-      expect(lineEl.querySelector('.lyrics-pinyin').textContent)
-        .toEqual(expectedPinyin, 'should be a pinyin line');
-      expect(lineEl.querySelector('.lyrics-english').textContent)
-        .toEqual(expectedEnglish, 'should be an English translation line');
+      expect(lineEl.querySelector('.lyrics-chinese').textContent).toEqual(
+        expectedChinese,
+        'should be Chinese lyrics line',
+      );
+      expect(lineEl.querySelector('.lyrics-pinyin').textContent).toEqual(
+        expectedPinyin,
+        'should be a pinyin line',
+      );
+      expect(lineEl.querySelector('.lyrics-english').textContent).toEqual(
+        expectedEnglish,
+        'should be an English translation line',
+      );
     });
 
     it('should display a text line', () => {

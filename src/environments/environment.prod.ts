@@ -10,6 +10,6 @@ export const environment = {
     projectId: 'maydayworld-55555',
     storageBucket: 'maydayworld-55555.appspot.com',
     messagingSenderId: '507045645226',
-    appId: '1:507045645226:web:7bfcb838e1a8cb47'
-  }
+    appId: '1:507045645226:web:7bfcb838e1a8cb47',
+  },
 };

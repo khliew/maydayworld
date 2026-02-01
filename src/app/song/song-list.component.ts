@@ -1,27 +1,37 @@
+import { AsyncPipe } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { MatIconButton } from '@angular/material/button';
+import { MatIcon } from '@angular/material/icon';
+import { MatListModule } from '@angular/material/list';
+import { ActivatedRoute, RouterLink, RouterLinkActive } from '@angular/router';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Album } from '../model';
 
 @Component({
   selector: 'app-song-list',
   templateUrl: './song-list.component.html',
-  styleUrls: ['./song-list.component.css']
+  styleUrls: ['./song-list.component.css'],
+  imports: [AsyncPipe, MatIconButton, RouterLink, MatIcon, MatListModule, RouterLinkActive],
 })
 export class SongListComponent implements OnInit {
-  album: Album;
-  trackKeys: number[];
+  album$: Observable<Album>;
+  trackKeys$: Observable<number[]>;
 
-  constructor(private route: ActivatedRoute) { }
+  constructor(private route: ActivatedRoute) {}
 
   ngOnInit(): void {
-    this.route.data
-      .subscribe(data => {
-        if (!!data.album) {
-          this.album = data.album;
+    this.album$ = this.route.data.pipe(map(data => data.album));
 
-          this.trackKeys = Object.keys(this.album.songs) as unknown as number[];
-          this.trackKeys.sort((a, b) => a - b); // sort numerically in ascending order
+    this.trackKeys$ = this.album$.pipe(
+      map(album => {
+        if (album) {
+          const keys = Object.keys(album.songs) as unknown as number[];
+          keys.sort((a, b) => a - b);
+          return keys;
         }
-      });
+        return [];
+      }),
+    );
   }
 }

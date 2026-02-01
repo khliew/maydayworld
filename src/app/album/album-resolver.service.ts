@@ -7,7 +7,7 @@ import { DataService } from '../services/data.service';
   providedIn: 'root',
 })
 export class AlbumResolverService implements Resolve<Album> {
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService) {}
 
   resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
     const albumId = route.paramMap.get('albumId');

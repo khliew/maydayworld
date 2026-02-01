@@ -1,5 +1,9 @@
 import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
-import { FormBuilder } from '@angular/forms';
+import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import { MatIconButton } from '@angular/material/button';
+import { MatCheckbox } from '@angular/material/checkbox';
+import { MatIcon } from '@angular/material/icon';
+import { MatFormField, MatInput } from '@angular/material/input';
 import { Discography } from '../../model';
 import { AdminService } from '../admin.service';
 import { SectionsParser } from './sections-parser';
@@ -7,11 +11,12 @@ import { SectionsParser } from './sections-parser';
 @Component({
   selector: 'app-discography-creator',
   templateUrl: './discography-creator.component.html',
-  styleUrls: ['./discography-creator.component.css']
+  styleUrls: ['./discography-creator.component.css'],
+  imports: [ReactiveFormsModule, MatFormField, MatInput, MatIconButton, MatIcon, MatCheckbox],
 })
 export class DiscographyCreatorComponent implements AfterViewInit {
   discoForm = this.fb.group({
-    artistId: ['']
+    artistId: [''],
   });
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
@@ -26,7 +31,10 @@ export class DiscographyCreatorComponent implements AfterViewInit {
   searchDisabled: boolean;
   searchError: string;
 
-  constructor(private fb: FormBuilder, private adminService: AdminService) {
+  constructor(
+    private fb: FormBuilder,
+    private adminService: AdminService,
+  ) {
     this.sectionsParser = new SectionsParser();
     this.hideOutput = true;
     this.buttonsDisabled = false;
@@ -47,16 +55,15 @@ export class DiscographyCreatorComponent implements AfterViewInit {
       this.searchError = '';
       this.searchDisabled = true;
 
-      this.adminService.getDiscography(artistId)
-        .subscribe(disco => {
-          this.searchDisabled = false;
+      this.adminService.getDiscography(artistId).subscribe(disco => {
+        this.searchDisabled = false;
 
-          if (disco) {
-            this.fillForm(disco);
-          } else {
-            this.searchError = `Discography not found: ${artistId}`;
-          }
-        });
+        if (disco) {
+          this.fillForm(disco);
+        } else {
+          this.searchError = `Discography not found: ${artistId}`;
+        }
+      });
     }
   }
 

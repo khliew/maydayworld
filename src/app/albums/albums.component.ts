@@ -1,27 +1,23 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { AsyncPipe, DatePipe } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
+import { MatListModule } from '@angular/material/list';
+import { RouterLink } from '@angular/router';
+import { Observable } from 'rxjs';
 import { Discography } from '../model';
 import { DataService } from '../services/data.service';
-import { Subscription } from 'rxjs';
 
 @Component({
   selector: 'app-albums',
   templateUrl: './albums.component.html',
-  styleUrls: ['./albums.component.css']
+  styleUrls: ['./albums.component.css'],
+  imports: [AsyncPipe, MatListModule, RouterLink, DatePipe],
 })
-export class AlbumsComponent implements OnInit, OnDestroy {
-  discoSub: Subscription;
-  discography: Discography;
+export class AlbumsComponent implements OnInit {
+  discography$: Observable<Discography>;
 
-  constructor(private dataService: DataService) { }
+  constructor(private dataService: DataService) {}
 
   ngOnInit(): void {
-    this.discoSub = this.dataService.getDiscography()
-      .subscribe(
-        discography => this.discography = discography
-      );
-  }
-
-  ngOnDestroy(): void {
-    this.discoSub.unsubscribe();
+    this.discography$ = this.dataService.getDiscography();
   }
 }

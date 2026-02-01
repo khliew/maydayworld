@@ -1,29 +1,36 @@
-<ng-container *ngIf="discography">
+@if (discography$ | async; as discography) {
   <mat-nav-list class="album-list">
-    <ng-container *ngFor="let section of discography.sections">
-      <ng-container *ngIf="!!section.albums && section.albums.length > 0">
+    @for (section of discography.sections; track section.type) {
+      @if (!!section.albums && section.albums.length > 0) {
         <h3 mat-subheader class="section-header">
-          <ng-container [ngSwitch]="section.type">
-            <ng-container *ngSwitchCase="'studio'">
+          @switch (section.type) {
+            @case ('studio') {
               Studio Albums
-            </ng-container>
-            <ng-container *ngSwitchCase="'compilation'">
+            }
+            @case ('compilation') {
               Compilations
-            </ng-container>
-            <ng-container *ngSwitchCase="'ep'">
+            }
+            @case ('ep') {
               EP
-            </ng-container>
-            <ng-container *ngSwitchCase="'other'">
+            }
+            @case ('other') {
               Other
-            </ng-container>
-          </ng-container>
+            }
+          }
         </h3>
-        <a mat-list-item *ngFor="let album of section.albums" [routerLink]="['/album', album.id]"
-          routerLinkActive="active-nav-item" class="list-item" [class.disabled]="album.disabled">
-          <div matLine class="title-chinese">{{album.title.chinese.zht}}</div>
-          <div matLine class="title-english">{{album.title.english}}</div>
-        </a>
-      </ng-container>
-    </ng-container>
+        @for (album of section.albums; track album.id) {
+          <a
+            mat-list-item
+            [routerLink]="['/album', album.id]"
+            routerLinkActive="active-nav-item"
+            class="list-item"
+            [class.disabled]="album.disabled"
+          >
+            <span matListItemTitle class="title-chinese">{{ album.title.chinese.zht }}</span>
+            <span matListItemLine class="title-english">{{ album.title.english }}</span>
+          </a>
+        }
+      }
+    }
   </mat-nav-list>
-</ng-container>
+}

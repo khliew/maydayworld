@@ -3,18 +3,23 @@
   <form [formGroup]="discoForm">
     <div>
       <mat-form-field class="meta-field">
-        <input #artistId matInput placeholder="Artist ID" formControlName="artistId" autofocus>
+        <input #artistId matInput placeholder="Artist ID" formControlName="artistId" autofocus />
       </mat-form-field>
       <button mat-icon-button (click)="searchDiscography()" [disabled]="searchDisabled">
         <mat-icon>search</mat-icon>
       </button>
-      <span class="search-error">{{this.searchError}}</span>
+      <span class="search-error">{{ this.searchError }}</span>
     </div>
   </form>
   <div [class.hide]="hideOutput">
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
-      <textarea matInput rows="20" [formControl]="outputForm" [readonly]="readonly.value"></textarea>
+      <textarea
+        matInput
+        rows="20"
+        [formControl]="outputForm"
+        [readonly]="readonly.value"
+      ></textarea>
     </mat-form-field>
   </div>
 </div>
