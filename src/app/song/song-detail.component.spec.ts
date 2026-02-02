@@ -1,13 +1,12 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { RouterLinkDirectiveStub } from 'src/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Song } from '../model';
-import { getTestSong, SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { getTestSong } from '../model/testing';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { SharedModule } from '../shared/shared.module';
 import { SongDetailComponent } from './song-detail.component';
 
 describe('SongDetailComponent', () => {
@@ -18,31 +17,38 @@ describe('SongDetailComponent', () => {
   let titleService: TitleService;
   let testSong: Song;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testSong = getTestSong();
     activatedRoute = { data: of({ song: testSong }) } as any;
 
-    TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, SongDetailComponent, RouterLinkDirectiveStub],
+    await TestBed.configureTestingModule({
+      imports: [SongDetailComponent],
       providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        TitleService,
+        SidenavService,
         { provide: ActivatedRoute, useValue: activatedRoute },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub },
       ],
     }).compileComponents();
+
+    sidenavService = TestBed.inject(SidenavService);
+    titleService = TestBed.inject(TitleService);
+
+    vi.spyOn(sidenavService, 'setEnabled');
+    vi.spyOn(titleService, 'setTitle');
 
     fixture = TestBed.createComponent(SongDetailComponent);
     comp = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
-
-    fixture.detectChanges(); // ngOnInit()
-  }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
 
   it('should get a song', () => {
-    expect(comp.song).toBe(testSong);
+    comp.song$.subscribe(song => {
+      expect(song).toBe(testSong);
+    });
   });
 
   it('should show the sidenav', () => {

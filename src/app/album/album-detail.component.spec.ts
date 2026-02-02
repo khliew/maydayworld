@@ -1,50 +1,54 @@
 import { DatePipe } from '@angular/common';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
-import { RouterLinkDirectiveStub } from 'src/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
+import { firstValueFrom, of } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Album, Track } from '../model';
-import { getTestAlbum, SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { getTestAlbum } from '../model/testing';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { SharedModule } from '../shared/shared.module';
 import { AlbumDetailComponent } from './album-detail.component';
 
 describe('AlbumDetailsComponent', () => {
   let fixture: ComponentFixture<AlbumDetailComponent>;
-  let comp: AlbumDetailComponent;
+  let component: AlbumDetailComponent;
   let activatedRoute: ActivatedRoute;
   let sidenavService: SidenavService;
   let titleService: TitleService;
   let testAlbum: Album;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testAlbum = getTestAlbum();
     activatedRoute = { data: of({ album: testAlbum }) } as any;
 
-    TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, AlbumDetailComponent, RouterLinkDirectiveStub],
+    await TestBed.configureTestingModule({
+      imports: [AlbumDetailComponent],
       providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: activatedRoute },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub },
+        TitleService,
+        SidenavService,
       ],
     }).compileComponents();
 
+    sidenavService = TestBed.inject(SidenavService);
+    titleService = TestBed.inject(TitleService);
+
+    vi.spyOn(sidenavService, 'setEnabled');
+    vi.spyOn(titleService, 'setTitle');
+
     fixture = TestBed.createComponent(AlbumDetailComponent);
-    comp = fixture.componentInstance;
+    component = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
+    await fixture.whenStable();
+  });
 
-    fixture.detectChanges(); // ngOnInit()
-  }));
-
-  it('should get an album', () => {
-    expect(comp.album).toBe(testAlbum);
+  it('should get an album', async () => {
+    const album = await firstValueFrom(component.album$);
+    expect(album).toBe(testAlbum);
   });
 
   it('should show the sidenav', () => {
@@ -124,10 +128,10 @@ describe('AlbumDetailsComponent', () => {
     });
 
     it('should route to the correct link', () => {
-      const linkDe = fixture.debugElement.query(By.directive(RouterLinkDirectiveStub));
-      const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-      expect(routerLink.linkParams).toEqual(['/album', testAlbum.id, 'song', testSong.id]);
+      const linkDe = fixture.debugElement.query(By.css('.track-item'));
+      expect(linkDe.nativeElement.getAttribute('href')).toEqual(
+        `/album/${testAlbum.id}/song/${testSong.id}`,
+      );
     });
   });
 });

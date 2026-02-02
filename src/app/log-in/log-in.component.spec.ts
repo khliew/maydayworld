@@ -1,92 +1,88 @@
-import { async, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { Auth } from '@angular/fire/auth';
-import { FormBuilder } from '@angular/forms';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 import { Router } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { click, newEvent, RouterLinkDirectiveStub } from 'src/testing';
-import { SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
 import { DataService } from '../services/data.service';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
 import { LogInComponent } from './log-in.component';
 
+vi.mock('@angular/fire/auth', async () => {
+  const actual = await vi.importActual<typeof import('@angular/fire/auth')>('@angular/fire/auth');
+  return {
+    ...actual,
+    signInWithEmailAndPassword: vi.fn().mockResolvedValue({}),
+  };
+});
+
 describe('LogInComponent', () => {
-  let comp: LogInComponent;
+  let component: LogInComponent;
   let fixture: ComponentFixture<LogInComponent>;
-  let sidenavService: SidenavService;
-  let titleService: TitleService;
-  let formBuilder: FormBuilder;
-  let dataServiceSpy;
-  let routerSpy;
-  let afAuth;
-  let authSpy;
+  let setEnabledSpy: MockInstance<(enabled: boolean) => void>;
+  let resetTitleSpy: MockInstance<() => void>;
+  let routerSpy: { navigate: any };
 
-  beforeEach(async(() => {
-    dataServiceSpy = jasmine.createSpyObj('DataService', ['logIn']);
-    routerSpy = jasmine.createSpyObj('Router', ['navigate']);
-    authSpy = jasmine.createSpyObj('FirebaseAuth', ['signInWithEmailAndPassword']);
-    afAuth = {
-      auth: authSpy,
-    };
-    formBuilder = new FormBuilder();
+  beforeEach(async () => {
+    routerSpy = { navigate: vi.fn() };
 
-    TestBed.configureTestingModule({
-      imports: [RouterTestingModule, LogInComponent, RouterLinkDirectiveStub],
+    await TestBed.configureTestingModule({
+      imports: [LogInComponent],
       providers: [
-        { provide: DataService, useValue: dataServiceSpy },
-        { provide: FormBuilder, useValue: formBuilder },
+        provideZonelessChangeDetection(),
+        SidenavService,
+        TitleService,
+        { provide: Auth, useValue: {} },
+        { provide: DataService, useValue: {} },
         { provide: Router, useValue: routerSpy },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub },
-        { provide: Auth, useValue: afAuth },
       ],
     }).compileComponents();
 
+    const sidenavService = TestBed.inject(SidenavService);
+    const titleService = TestBed.inject(TitleService);
+
+    setEnabledSpy = vi.spyOn(sidenavService, 'setEnabled');
+    resetTitleSpy = vi.spyOn(titleService, 'resetTitle');
+
     fixture = TestBed.createComponent(LogInComponent);
-    comp = fixture.componentInstance;
+    component = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
-
-    fixture.detectChanges(); // ngOnInit()
-  }));
+    await fixture.whenStable();
+  });
 
   it('should hide the sidenav', () => {
-    expect(sidenavService.setEnabled).toHaveBeenCalledWith(false);
+    expect(setEnabledSpy).toHaveBeenCalledWith(false);
   });
 
   it('should reset the document title', () => {
-    expect(titleService.resetTitle).toHaveBeenCalled();
+    expect(resetTitleSpy).toHaveBeenCalled();
   });
 
-  it('should have a fail count of zero', fakeAsync(() => {
-    expect(comp.failCount).toBe(0);
-  }));
+  it('should have a fail count of zero', () => {
+    expect(component.failCount).toBe(0);
+  });
 
   describe('logging in successful', () => {
     let email;
     let password;
 
-    beforeEach(fakeAsync(() => {
-      afAuth.auth.signInWithEmailAndPassword.and.returnValue(Promise.resolve(true));
-
+    beforeEach(async () => {
       email = 'email';
-      const emailEl = fixture.nativeElement.querySelector('.email');
+      const emailEl = fixture.nativeElement.querySelector('.email') as HTMLInputElement;
       emailEl.value = email;
-      emailEl.dispatchEvent(newEvent('input')); // notify Angular
+      emailEl.dispatchEvent(new Event('input')); // notify Angular
 
       password = 'password';
-      const passwordEl = fixture.nativeElement.querySelector('.password');
+      const passwordEl = fixture.nativeElement.querySelector('.password') as HTMLInputElement;
       passwordEl.value = password;
-      passwordEl.dispatchEvent(newEvent('input')); // notify Angular
+      passwordEl.dispatchEvent(new Event('input')); // notify Angular
 
       const logIn = fixture.nativeElement.querySelector('.log-in');
-      click(logIn);
-    }));
+      await logIn.click();
+    });
 
     it('should sign in with user provided email and password', () => {
-      expect(afAuth.auth.signInWithEmailAndPassword).toHaveBeenCalledWith(email, password);
+      expect(signInWithEmailAndPassword).toHaveBeenCalledWith(expect.anything(), email, password);
     });
 
     it('should navigate to admin', () => {
@@ -95,21 +91,20 @@ describe('LogInComponent', () => {
   });
 
   describe('logging in failed', () => {
-    beforeEach(fakeAsync(() => {
-      afAuth.auth.signInWithEmailAndPassword.and.returnValue(Promise.reject(false));
+    beforeEach(async () => {
+      vi.mocked(signInWithEmailAndPassword).mockRejectedValueOnce(new Error('Auth failed'));
 
       const logIn = fixture.nativeElement.querySelector('.log-in');
-      click(logIn);
-
-      tick(1000); // needs to be 1000
-    }));
+      logIn.click();
+      await fixture.whenStable();
+    });
 
     it('should increase fail count', () => {
-      expect(comp.failCount).toBe(1);
+      expect(component.failCount).toBe(1);
     });
 
     it('should increase timeout', () => {
-      expect(comp.timeout).toBe(1000);
+      expect(component.timeout).toBe(1000);
     });
   });
 });

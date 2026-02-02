@@ -1,61 +1,60 @@
-import { async, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { RouterTestingModule } from '@angular/router/testing';
-import { asyncData, RouterLinkDirectiveStub } from 'src/testing';
-import { AlbumMetadata, Discography } from '../model';
-import { getTestDiscography } from '../model/testing';
+import { provideRouter } from '@angular/router';
+import { firstValueFrom, of } from 'rxjs';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import { Album, AlbumMetadata, Discography } from '../model';
+import { getTestAlbum, getTestDiscography } from '../model/testing';
 import { DataService } from '../services/data.service';
-import { SharedModule } from '../shared/shared.module';
 import { AlbumListComponent } from './album-list.component';
 
 describe('AlbumListComponent', () => {
   let fixture: ComponentFixture<AlbumListComponent>;
-  let comp: AlbumListComponent;
+  let component: AlbumListComponent;
   let testDiscography: Discography;
+  let testAlbum: Album;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testDiscography = getTestDiscography();
-    const dataService = jasmine.createSpyObj('DataService', ['getDiscography']);
-    dataService.getDiscography.and.returnValue(asyncData(testDiscography));
+    testAlbum = getTestAlbum();
 
-    TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, AlbumListComponent, RouterLinkDirectiveStub],
-      providers: [{ provide: DataService, useValue: dataService }],
+    await TestBed.configureTestingModule({
+      imports: [AlbumListComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        { provide: DataService, useValue: { getDiscography: vi.fn() } },
+      ],
     }).compileComponents();
 
+    const dataServiceSpy = TestBed.inject(DataService) as Mocked<DataService>;
+    dataServiceSpy.getDiscography.mockReturnValue(of(testDiscography));
+
     fixture = TestBed.createComponent(AlbumListComponent);
-    comp = fixture.componentInstance;
+    component = fixture.componentInstance;
 
-    fixture.detectChanges(); // ngOnInit()
-  }));
-
-  it('should get a discography', () => {
-    expect(comp.discography).toBe(testDiscography);
+    await fixture.whenStable();
   });
 
-  it('should display discography sections that have at least one album', fakeAsync(() => {
-    tick();
-    fixture.detectChanges(); // update with getDiscography()
+  it('should get a discography', async () => {
+    const discography = await firstValueFrom(component.discography$);
+    expect(discography).toBe(testDiscography);
+  });
 
-    const albumsEl: HTMLElement = fixture.nativeElement;
-    const els = albumsEl.querySelectorAll('.section-header');
-
+  it('should display discography sections that have at least one album', () => {
+    const els = fixture.nativeElement.querySelectorAll('.section-header');
     expect(els.length).toBe(1);
-  }));
+  });
 
   describe('Album', () => {
     let testAlbum: AlbumMetadata;
-    let albumEl;
+    let albumEl: HTMLElement;
 
-    beforeEach(fakeAsync(() => {
+    beforeEach(async () => {
       testAlbum = testDiscography.sections[0].albums[0];
-
-      tick();
-      fixture.detectChanges(); // update with getDiscography()
-
-      const albumsEl: HTMLElement = fixture.nativeElement;
-      albumEl = albumsEl.querySelector('.list-item');
-    }));
+      albumEl = fixture.nativeElement.querySelector('.list-item');
+    });
 
     it('should display the Chinese title', () => {
       const chineseEl: HTMLElement = albumEl.querySelector('.title-chinese');
@@ -69,9 +68,7 @@ describe('AlbumListComponent', () => {
 
     it('should route to the correct link', () => {
       const linkDe = fixture.debugElement.query(By.css('.list-item'));
-      const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-      expect(routerLink.linkParams).toEqual(['/album', testAlbum.id]);
+      expect(linkDe.nativeElement.getAttribute('href')).toEqual(`/album/${testAlbum.id}`);
     });
   });
 });

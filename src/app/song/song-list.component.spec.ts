@@ -1,12 +1,13 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { RouterLinkDirectiveStub } from 'src/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Album, Track } from '../model';
 import { getTestAlbum } from '../model/testing/test-album';
-import { SharedModule } from '../shared/shared.module';
+import { SidenavService } from '../services/sidenav.service';
+import { TitleService } from '../services/title.service';
 import { SongListComponent } from './song-list.component';
 
 describe('SongListComponent', () => {
@@ -14,31 +15,45 @@ describe('SongListComponent', () => {
   let comp: SongListComponent;
   let activatedRoute: ActivatedRoute;
   let testAlbum: Album;
+  let sidenavService: SidenavService;
+  let titleService: TitleService;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testAlbum = getTestAlbum();
     activatedRoute = { data: of({ album: testAlbum }), snapshot: {} } as any;
 
-    TestBed.configureTestingModule({
-      imports: [SharedModule, RouterTestingModule, SongListComponent, RouterLinkDirectiveStub],
-      providers: [{ provide: ActivatedRoute, useValue: activatedRoute }],
+    await TestBed.configureTestingModule({
+      imports: [SongListComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        SidenavService,
+        TitleService,
+        { provide: ActivatedRoute, useValue: activatedRoute },
+      ],
     }).compileComponents();
+
+    sidenavService = TestBed.inject(SidenavService);
+    titleService = TestBed.inject(TitleService);
+    vi.spyOn(sidenavService, 'setEnabled');
+    vi.spyOn(titleService, 'resetTitle');
 
     fixture = TestBed.createComponent(SongListComponent);
     comp = fixture.componentInstance;
 
-    fixture.detectChanges(); // ngOnInit()
-  }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
 
   it('should get an album', () => {
-    expect(comp.album).toBe(testAlbum);
+    comp.album$.subscribe(album => {
+      expect(album).toBe(testAlbum);
+    });
   });
 
   it('should have the correct go-up route', () => {
     const linkDe = fixture.debugElement.query(By.css('.go-up'));
-    const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-    expect(routerLink.linkParams).toEqual(['../../../']);
+    expect(linkDe.nativeElement.getAttribute('href')).toEqual('/');
   });
 
   describe('header', () => {
@@ -96,9 +111,9 @@ describe('SongListComponent', () => {
 
     it('should route to the correct link', () => {
       const linkDe = fixture.debugElement.query(By.css('.track-item'));
-      const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-      expect(routerLink.linkParams).toEqual(['/album', testAlbum.id, 'song', testSong.id]);
+      expect(linkDe.nativeElement.getAttribute('href')).toEqual(
+        `/album/${testAlbum.id}/song/${testSong.id}`,
+      );
     });
   });
 });
