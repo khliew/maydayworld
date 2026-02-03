@@ -12,7 +12,7 @@
     "experimentalDecorators": true,
     "importHelpers": true,
     "resolveJsonModule": true,
-    "target": "es6",
+    "target": "ES2022",
     "typeRoots": ["node_modules/@types"],
     "plugins": [
       {

@@ -1,6 +1,6 @@
 {
   "hosting": {
-    "public": "dist/maydayworld",
+    "public": "dist/maydayworld/browser",
     "ignore": ["firebase.json", "**/.*", "**/node_modules/**"],
     "rewrites": [
       {

@@ -10,7 +10,7 @@
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "lint": "ng lint",
-    "build-fb": "ng build --configuration production && firebase deploy",
+    "build:firebase": "ng build --configuration production && firebase deploy",
     "deploy": "deploy-aws.sh"
   },
   "private": true,
