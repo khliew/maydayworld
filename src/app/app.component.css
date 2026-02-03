@@ -8,6 +8,7 @@
   align-items: center;
   height: 100%;
   background-color: transparent;
+  text-decoration: none;
 }
 .title-icon {
   padding-left: 8px;
