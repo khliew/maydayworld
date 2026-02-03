@@ -1,21 +1,21 @@
-import { Component, OnInit, NgZone } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/auth';
+import { Component, inject, OnInit } from '@angular/core';
+import { Auth, signOut } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-log-out',
   templateUrl: './log-out.component.html',
-  styleUrls: ['./log-out.component.css']
+  styleUrls: ['./log-out.component.css'],
 })
 export class LogOutComponent implements OnInit {
-  constructor(private afAuth: AngularFireAuth, private router: Router, private ngZone: NgZone) { }
+  private auth = inject(Auth);
+  private router = inject(Router);
 
   ngOnInit() {
     this.logOut();
   }
 
   logOut() {
-    this.afAuth.auth.signOut()
-      .then(() => this.ngZone.run(() => this.router.navigate(['login'])));
+    signOut(this.auth).then(() => this.router.navigate(['login']));
   }
 }

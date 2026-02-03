@@ -1,87 +1,59 @@
 import { DatePipe } from '@angular/common';
-import { async, ComponentFixture, fakeAsync, TestBed, tick } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { RouterTestingModule } from '@angular/router/testing';
-import { asyncData, RouterLinkDirectiveStub } from '../../testing';
-import { Album, Discography } from '../model';
-import { SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { provideRouter } from '@angular/router';
+import { firstValueFrom, of } from 'rxjs';
+import { beforeEach, describe, expect, it, Mocked, vi } from 'vitest';
+import { AlbumMetadata, Discography } from '../model';
 import { getTestDiscography } from '../model/testing/test-discography';
 import { DataService } from '../services/data.service';
-import { SidenavService } from '../services/sidenav.service';
-import { TitleService } from '../services/title.service';
 import { AlbumsComponent } from './albums.component';
 
 describe('AlbumsComponent', () => {
   let fixture: ComponentFixture<AlbumsComponent>;
-  let comp: AlbumsComponent;
-  let sidenavService: SidenavService;
-  let titleService: TitleService;
+  let component: AlbumsComponent;
   let testDiscography: Discography;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testDiscography = getTestDiscography();
-    const dataService = jasmine.createSpyObj('DataService', ['getDiscography']);
-    dataService.getDiscography.and.returnValue(asyncData(testDiscography));
 
-    TestBed.configureTestingModule({
-      imports: [RouterTestingModule],
-      declarations: [
-        AlbumsComponent,
-        RouterLinkDirectiveStub
-      ],
+    await TestBed.configureTestingModule({
+      imports: [AlbumsComponent],
       providers: [
-        { provide: DataService, useValue: dataService },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub }
-      ]
-    })
-      .compileComponents();
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        { provide: DataService, useValue: { getDiscography: vi.fn() } },
+      ],
+    }).compileComponents();
+
+    const dataServiceSpy = TestBed.inject(DataService) as Mocked<DataService>;
+    dataServiceSpy.getDiscography.mockReturnValue(of(testDiscography));
 
     fixture = TestBed.createComponent(AlbumsComponent);
-    comp = fixture.componentInstance;
+    component = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
-
-    fixture.detectChanges(); // ngOnInit()
-  }));
-
-  it('should hide the sidenav', () => {
-    expect(sidenavService.setEnabled).toHaveBeenCalledWith(false);
+    await fixture.whenStable();
   });
 
-  it('should reset the document title', () => {
-    expect(titleService.resetTitle).toHaveBeenCalled();
+  it('should get a discography', async () => {
+    const discography = await firstValueFrom(component.discography$);
+    expect(discography).toBe(testDiscography);
   });
 
-  it('should get a discography', () => {
-    expect(comp.discography).toBe(testDiscography);
-  });
-
-  it('should display discography sections that have at least one album', fakeAsync(() => {
-    tick();
-    fixture.detectChanges(); // update with getDiscography()
-
-    const albumsEl: HTMLElement = fixture.nativeElement;
-    const els = albumsEl.querySelectorAll('.section');
-
+  it('should display discography sections that have at least one album', () => {
+    const els = fixture.nativeElement.querySelectorAll('.section');
     expect(els.length).toBe(1);
-  }));
+  });
 
   describe('Album', () => {
-    let testAlbum: Album;
-    let albumEl;
+    let testAlbum: AlbumMetadata;
+    let albumEl: HTMLElement;
 
-    beforeEach(fakeAsync(() => {
+    beforeEach(async () => {
       testAlbum = testDiscography.sections[0].albums[0];
-
-      tick();
-      fixture.detectChanges(); // update with getDiscography()
-
-      const albumsEl: HTMLElement = fixture.nativeElement;
-      albumEl = albumsEl.querySelector('.album-card');
-    }));
+      albumEl = fixture.nativeElement.querySelector('.album-card');
+    });
 
     it('should display the Chinese title', () => {
       const chineseEl: HTMLElement = albumEl.querySelector('.title-chinese');
@@ -103,10 +75,8 @@ describe('AlbumsComponent', () => {
     });
 
     it('should route to the correct link', () => {
-      const linkDe = fixture.debugElement.query(By.directive(RouterLinkDirectiveStub));
-      const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-      expect(routerLink.linkParams).toEqual(['/album', testAlbum.id]);
+      const linkDe = fixture.debugElement.query(By.css('.album-card'));
+      expect(linkDe.nativeElement.getAttribute('href')).toEqual(`/album/${testAlbum.id}`);
     });
   });
 });

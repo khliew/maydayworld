@@ -2,7 +2,7 @@
   padding: 32px 0;
 }
 .section-header {
-  /* padding-top: 40px; */
+  text-align: center;
 }
 .list-item {
   line-height: 18px;
@@ -13,11 +13,6 @@
 }
 .list-item {
 }
-.list-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
 .list-item.disabled {
-  pointer-events: none;
-  cursor: default;
   color: lightgray;
 }

@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 
 @Injectable()
 export class TitleService {
-  constructor(private title: Title) { }
+  private title = inject(Title);
 
   public setTitle(newTitle: string): void {
     this.title.setTitle(`${newTitle} - ${TITLE_DEFAULT}`);
@@ -14,4 +14,5 @@ export class TitleService {
   }
 }
 
-export const TITLE_DEFAULT = 'Mayday World: Chinese lyrics, pinyin, and English translations 五月天歌詞漢語拼音英文翻譯';
+export const TITLE_DEFAULT =
+  'Mayday World: Chinese lyrics, pinyin, and English translations 五月天歌詞漢語拼音英文翻譯';

@@ -1,35 +1,47 @@
 <div class="container">
-  <ng-container *ngIf="song">
+  @if (song$ | async; as song) {
     <div class="song-header">
       <div class="song-title">
-        <div class="title-chinese">{{song.title.chinese.zht}}</div>
+        <div class="title-chinese">{{ song.title.chinese.zht }}</div>
         <div class="title-translation">
-          <span class="trans-pinyin">{{song.title.chinese.zhp}}</span>
-          <br>
-          <span class="trans-english primary-dark">{{song.title.chinese.eng}}</span>
+          <span class="trans-pinyin">{{ song.title.chinese.zhp }}</span>
+          <br />
+          <span class="trans-english primary-dark">{{ song.title.chinese.eng }}</span>
         </div>
-        <div class="title-english">{{song.title.english}}</div>
+        <div class="title-english">{{ song.title.english }}</div>
       </div>
-      <div *ngIf="song.lyricist" class="song-tag lyricist">Lyricist: {{song.lyricist}}</div>
-      <div *ngIf="song.composer" class="song-tag composer">Composer: {{song.composer}}</div>
-      <div *ngIf="song.arranger" class="song-tag arranger">Arrangement by: {{song.arranger}}</div>
+      @if (song.lyricist) {
+        <div class="song-tag lyricist">Lyricist: {{ song.lyricist }}</div>
+      }
+      @if (song.composer) {
+        <div class="song-tag composer">Composer: {{ song.composer }}</div>
+      }
+      @if (song.arranger) {
+        <div class="song-tag arranger">Arrangement by: {{ song.arranger }}</div>
+      }
     </div>
     <div class="song-content">
-      <ng-container *ngFor="let lyric of song.lyrics">
-        <ng-container [ngSwitch]="lyric.type">
-          <p *ngSwitchCase="'lyric'" class="line line-lyric">
-            <span class="lyrics-chinese">{{lyric.zht}}</span>
-            <br>
-            <span class="lyrics-pinyin">{{lyric.zhp}}</span>
-            <br>
-            <span class="lyrics-english primary-dark">{{lyric.eng}}</span>
-          </p>
-          <p *ngSwitchCase="'break'"  class="line line-break">
-            <br>
-          </p>
-          <p *ngSwitchCase="'text'"  class="line line-text">{{lyric.text}}</p>
-        </ng-container>
-      </ng-container>
+      @for (lyric of song.lyrics; track $index) {
+        @switch (lyric.type) {
+          @case ('lyric') {
+            <p class="line line-lyric">
+              <span class="lyrics-chinese">{{ lyric.zht }}</span>
+              <br />
+              <span class="lyrics-pinyin">{{ lyric.zhp }}</span>
+              <br />
+              <span class="lyrics-english primary-dark">{{ lyric.eng }}</span>
+            </p>
+          }
+          @case ('break') {
+            <p class="line line-break">
+              <br />
+            </p>
+          }
+          @case ('text') {
+            <p class="line line-text">{{ lyric.text }}</p>
+          }
+        }
+      }
     </div>
-  </ng-container>
+  }
 </div>

@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
+import { vi } from 'vitest';
 
 @Injectable()
 export class TitleServiceStub {
-  resetTitle = jasmine.createSpy('resetTitle');
-  setTitle = jasmine.createSpy('setTitle');
+  resetTitle = vi.fn();
+  setTitle = vi.fn();
 }

@@ -2,10 +2,10 @@ import { Song } from '../song';
 
 export function getTestSong(): Song {
   return {
-    songId: 'songId',
+    id: 'songId',
     title: {
       chinese: { zht: 'zht', zhp: 'zhp', eng: 'eng' },
-      english: 'english'
+      english: 'english',
     },
     lyricist: 'lyricist',
     composer: 'composer',
@@ -22,8 +22,8 @@ export function getTestSong(): Song {
         text: 'line text',
       },
       {
-        type: 'break'
-      }
-    ]
+        type: 'break',
+      },
+    ],
   };
 }

@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Resolve, RouterStateSnapshot } from '@angular/router';
 import { Album } from '../model';
 import { DataService } from '../services/data.service';
@@ -7,7 +7,7 @@ import { DataService } from '../services/data.service';
   providedIn: 'root',
 })
 export class AlbumResolverService implements Resolve<Album> {
-  constructor(private dataService: DataService) { }
+  private dataService = inject(DataService);
 
   resolve(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
     const albumId = route.paramMap.get('albumId');

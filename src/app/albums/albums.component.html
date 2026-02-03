@@ -1,32 +1,41 @@
 <div class="content">
-  <ng-container *ngIf="discography">
-    <ng-container *ngFor="let section of discography.sections">
-      <div *ngIf="!!section.albums && section.albums.length > 0" class="section">
-        <h2 class="section-header">
-          <ng-container [ngSwitch]="section.type">
-            <ng-container *ngSwitchCase="'studio'">
-              Studio Albums
-            </ng-container>
-            <ng-container *ngSwitchCase="'compilation'">
-              Compilations
-            </ng-container>
-            <ng-container *ngSwitchCase="'ep'">
-              EP
-            </ng-container>
-            <ng-container *ngSwitchCase="'other'">
-              Other
-            </ng-container>
-          </ng-container>
-        </h2>
-        <div gdColumns="1fr 1fr" gdColumns.lt-sm="1fr" gdGap="16px">
-          <a mat-list-item *ngFor="let album of section.albums" [routerLink]="['/album', album.id]" class="album-card"
-            [class.disabled]="album.disabled">
-            <div matLine class="title-chinese">{{album.title.chinese.zht}}</div>
-            <div matLine class="title-english">{{album.title.english}}</div>
-            <div matLine class="release-date">{{ album.releaseDate | date }}</div>
-          </a>
+  @if (discography$ | async; as discography) {
+    @for (section of discography.sections; track section.type) {
+      @if (!!section.albums && section.albums.length > 0) {
+        <div class="section">
+          <h2 class="section-header">
+            @switch (section.type) {
+              @case ('studio') {
+                Studio Albums
+              }
+              @case ('compilation') {
+                Compilations
+              }
+              @case ('ep') {
+                EP
+              }
+              @case ('other') {
+                Other
+              }
+            }
+          </h2>
+          <mat-nav-list class="album-grid">
+            @for (album of section.albums; track album.id) {
+              <a
+                mat-list-item
+                [routerLink]="album.disabled ? null : ['/album', album.id]"
+                class="album-card"
+                [disabled]="album.disabled"
+                [class.disabled]="album.disabled"
+              >
+                <div matListItemLine class="title-chinese">{{ album.title.chinese.zht }}</div>
+                <div matListItemLine class="title-english">{{ album.title.english }}</div>
+                <div matListItemLine class="release-date">{{ album.releaseDate | date }}</div>
+              </a>
+            }
+          </mat-nav-list>
         </div>
-      </div>
-    </ng-container>
-  </ng-container>
+      }
+    }
+  }
 </div>

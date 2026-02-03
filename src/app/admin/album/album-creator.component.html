@@ -3,87 +3,125 @@
   <div>
     <mat-form-field appearance="outline" class="search-field">
       <mat-select placeholder="Select an album" [formControl]="search">
-        <mat-option *ngFor="let album of albums; let i = index" [value]="i">
-          {{album.id}} - {{album.title.chinese.zht}}
-        </mat-option>
+        @for (album of albums; track i; let i = $index) {
+          <mat-option [value]="album.id">
+            {{ album.id }} - {{ album.title.chinese.zht }}
+          </mat-option>
+        }
       </mat-select>
     </mat-form-field>
-    <span class="search-error">{{this.searchError}}</span>
+    <span class="search-error">{{ this.searchError }}</span>
   </div>
   <form [formGroup]="albumForm">
     <mat-form-field class="meta-field">
-      <input matInput formControlName="albumId" placeholder="Album ID">
+      <input matInput formControlName="albumId" placeholder="Album ID" />
     </mat-form-field>
     <div class="disable-album">
-      <mat-checkbox formControlName="disabled" matTooltip="Check to prevent users from clicking on this album">
+      <mat-checkbox
+        formControlName="disabled"
+        matTooltip="Check to prevent users from clicking on this album"
+      >
         Disabled
       </mat-checkbox>
     </div>
     <mat-form-field class="title-field" appearance="outline">
       <mat-label>Chinese title, pinyin and translation</mat-label>
-      <textarea matInput rows="3" formControlName="chineseTitle" placeholder="Enter each on a new line"></textarea>
+      <textarea
+        matInput
+        rows="3"
+        formControlName="chineseTitle"
+        placeholder="Enter each on a new line"
+      ></textarea>
     </mat-form-field>
     <div>
       <mat-form-field class="title-field">
-        <input matInput placeholder="English title" formControlName="englishTitle">
+        <input matInput placeholder="English title" formControlName="englishTitle" />
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="meta-field">
-        <input matInput placeholder="Release date" [matDatepicker]="picker" formControlName="releaseDate">
+        <input
+          matInput
+          placeholder="Release date"
+          [matDatepicker]="picker"
+          formControlName="releaseDate"
+        />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker disabled="false"></mat-datepicker>
       </mat-form-field>
     </div>
     <mat-form-field class="album-type">
       <mat-select placeholder="Album type" formControlName="albumType">
-        <mat-option value="studio">
-          Studio Album
-        </mat-option>
-        <mat-option value="compilation">
-          Compilation
-        </mat-option>
-        <mat-option value="ep">
-          EP
-        </mat-option>
-        <mat-option value="other">
-          Other
-        </mat-option>
+        <mat-option value="studio"> Studio Album </mat-option>
+        <mat-option value="compilation"> Compilation </mat-option>
+        <mat-option value="ep"> EP </mat-option>
+        <mat-option value="other"> Other </mat-option>
       </mat-select>
     </mat-form-field>
     <div>Tracks:</div>
-    <div formArrayName="tracks" *ngFor="let item of tracksForm.controls; let i = index">
-      <mat-form-field floatLabel="never" class="track-select">
-        <span matPrefix class="track-num">{{i + 1}}</span>
-        <mat-select placeholder="Select a track" [formControlName]="i" class="song">
-          <mat-option *ngFor="let song of songs" [value]="song.id">
-            {{song.id}} - {{song.title.chinese.zht}}
-          </mat-option>
-        </mat-select>
-      </mat-form-field>
-      <button mat-icon-button (click)="addTrackForm(i + 1)" [disabled]="albumForm.disabled">
-        <mat-icon>add</mat-icon>
-      </button>
-      <button mat-icon-button color="warn" (click)="removeTrackForm(i)" [disabled]="albumForm.disabled">
-        <mat-icon>close</mat-icon>
-      </button>
-    </div>
-    <button mat-flat-button color="accent" class="action-button" (click)="save()" [disabled]="albumForm.disabled">
+    @for (item of tracksForm.controls; track item; let i = $index) {
+      <div formArrayName="tracks">
+        <mat-form-field floatLabel="never" class="track-select">
+          <span matPrefix class="track-num">{{ i + 1 }}</span>
+          <mat-select placeholder="Select a track" [formControlName]="i" class="song">
+            @for (song of songs; track song.id) {
+              <mat-option [value]="song.id">
+                {{ song.id }} - {{ song.title.chinese.zht }}
+              </mat-option>
+            }
+          </mat-select>
+        </mat-form-field>
+        <button mat-icon-button (click)="addTrackForm(i + 1)" [disabled]="albumForm.disabled">
+          <mat-icon>add</mat-icon>
+        </button>
+        <button
+          mat-icon-button
+          color="warn"
+          (click)="removeTrackForm(i)"
+          [disabled]="albumForm.disabled"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+    }
+    <button
+      mat-flat-button
+      color="accent"
+      class="action-button"
+      (click)="save()"
+      [disabled]="albumForm.disabled"
+    >
       Save
     </button>
-    <button mat-flat-button color="primary" class="action-button" (click)="generateJson()"
-      [disabled]="albumForm.disabled">
+    <button
+      mat-flat-button
+      color="primary"
+      class="action-button"
+      (click)="generateJson()"
+      [disabled]="albumForm.disabled"
+    >
       Generate JSON
     </button>
-    <button mat-flat-button color="primary" class="action-button" (click)="clear()" [disabled]="albumForm.disabled">
+    <button
+      mat-flat-button
+      color="primary"
+      class="action-button"
+      (click)="clear()"
+      [disabled]="albumForm.disabled"
+    >
       Clear
     </button>
   </form>
-  <div class="response">{{this.response}}</div>
+  <div class="response">{{ this.response }}</div>
   <div [class.hide]="hideOutput">
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
-      <textarea matInput rows="10" [formControl]="outputForm" [readonly]="readonly.value"></textarea>
+      <textarea
+        matInput
+        rows="10"
+        [formControl]="outputForm"
+        [readonly]="readonly.value"
+      ></textarea>
     </mat-form-field>
   </div>
 </div>

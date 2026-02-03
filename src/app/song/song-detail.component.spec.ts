@@ -1,13 +1,12 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
 import { of } from 'rxjs';
-import { RouterLinkDirectiveStub } from 'src/testing';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { Song } from '../model';
-import { getTestSong, SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { getTestSong } from '../model/testing';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { SharedModule } from '../shared/shared.module';
 import { SongDetailComponent } from './song-detail.component';
 
 describe('SongDetailComponent', () => {
@@ -18,46 +17,45 @@ describe('SongDetailComponent', () => {
   let titleService: TitleService;
   let testSong: Song;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testSong = getTestSong();
     activatedRoute = { data: of({ song: testSong }) } as any;
 
-    TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule
-      ],
-      declarations: [
-        SongDetailComponent,
-        RouterLinkDirectiveStub
-      ],
+    await TestBed.configureTestingModule({
+      imports: [SongDetailComponent],
       providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        TitleService,
+        SidenavService,
         { provide: ActivatedRoute, useValue: activatedRoute },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub }
-      ]
-    })
-      .compileComponents();
+      ],
+    }).compileComponents();
+
+    sidenavService = TestBed.inject(SidenavService);
+    titleService = TestBed.inject(TitleService);
+
+    vi.spyOn(sidenavService, 'setEnabled');
+    vi.spyOn(titleService, 'setTitle');
 
     fixture = TestBed.createComponent(SongDetailComponent);
     comp = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
-
-    fixture.detectChanges(); // ngOnInit()
-  }));
+    fixture.detectChanges();
+    await fixture.whenStable();
+  });
 
   it('should get a song', () => {
-    expect(comp.song).toBe(testSong);
+    comp.song$.subscribe(song => {
+      expect(song).toBe(testSong);
+    });
   });
 
   it('should show the sidenav', () => {
     expect(sidenavService.setEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('should set the song\'s Chinese title as the document title', () => {
+  it("should set the song's Chinese title as the document title", () => {
     expect(titleService.setTitle).toHaveBeenCalledWith(testSong.title.chinese.zht);
   });
 
@@ -123,12 +121,18 @@ describe('SongDetailComponent', () => {
       const expectedPinyin = line.zhp;
       const expectedEnglish = line.eng;
 
-      expect(lineEl.querySelector('.lyrics-chinese').textContent)
-        .toEqual(expectedChinese, 'should be Chinese lyrics line');
-      expect(lineEl.querySelector('.lyrics-pinyin').textContent)
-        .toEqual(expectedPinyin, 'should be a pinyin line');
-      expect(lineEl.querySelector('.lyrics-english').textContent)
-        .toEqual(expectedEnglish, 'should be an English translation line');
+      expect(lineEl.querySelector('.lyrics-chinese').textContent).toEqual(
+        expectedChinese,
+        'should be Chinese lyrics line',
+      );
+      expect(lineEl.querySelector('.lyrics-pinyin').textContent).toEqual(
+        expectedPinyin,
+        'should be a pinyin line',
+      );
+      expect(lineEl.querySelector('.lyrics-english').textContent).toEqual(
+        expectedEnglish,
+        'should be an English translation line',
+      );
     });
 
     it('should display a text line', () => {

@@ -1,23 +1,21 @@
-import { Injectable } from '@angular/core';
-import { AngularFireAuth } from '@angular/fire/auth';
-import { CanLoad, Router } from '@angular/router';
-import { map } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import { Auth, authState } from '@angular/fire/auth';
+import { CanMatch, Router } from '@angular/router';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AuthGuard implements CanLoad {
+export class AuthGuard implements CanMatch {
+  private auth = inject(Auth);
+  private router = inject(Router);
 
-  constructor(private afAuth: AngularFireAuth, private router: Router) { }
-
-  canLoad() {
+  canMatch() {
     return this.checkAuth();
   }
 
   checkAuth() {
     return new Promise<boolean>((resolve, reject) => {
-      this.afAuth.authState.subscribe(user => {
+      authState(this.auth).subscribe(user => {
         if (!!user) {
           resolve(true);
         } else {

@@ -1,54 +1,46 @@
-import { Injectable } from '@angular/core';
-import { AngularFirestore } from '@angular/fire/firestore';
-import { Observable, throwError } from 'rxjs';
+import { inject, Injectable } from '@angular/core';
+import { doc, docSnapshots, Firestore } from '@angular/fire/firestore';
+import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Album, Discography, Song } from '../model';
 
 @Injectable()
 export class FirestoreService {
-
-  constructor(private afs: AngularFirestore) { }
+  private firestore = inject(Firestore);
 
   getDiscography(artistId: string = 'mayday'): Observable<Discography> {
-    // subscribe to snapshotChanges() instead of get() to get cached value first
-    return this.afs.doc<Discography>(`discos/${artistId}`).snapshotChanges()
-      .pipe(
-        map(action => action.payload),
-        map(snapshot => {
-          if (snapshot.exists) {
-            return snapshot.data();
-          } else {
-            throwError(`discography not found: ${artistId}`);
-          }
-        })
-      );
+    return docSnapshots(doc(this.firestore, `discos/${artistId}`)).pipe(
+      map(snapshot => {
+        if (snapshot.exists) {
+          return snapshot.data() as Discography;
+        } else {
+          throw new Error(`discography not found: ${artistId}`);
+        }
+      }),
+    );
   }
 
   getAlbum(albumId: string): Observable<Album> {
-    return this.afs.doc<Album>(`albums/${albumId}`).snapshotChanges()
-      .pipe(
-        map(action => action.payload),
-        map(snapshot => {
-          if (snapshot.exists) {
-            return snapshot.data();
-          } else {
-            throwError(`album not found: ${albumId}`);
-          }
-        })
-      );
+    return docSnapshots(doc(this.firestore, `albums/${albumId}`)).pipe(
+      map(snapshot => {
+        if (snapshot.exists) {
+          return snapshot.data() as Album;
+        } else {
+          throw new Error(`album not found: ${albumId}`);
+        }
+      }),
+    );
   }
 
   getSong(songId: string): Observable<Song> {
-    return this.afs.doc<Song>(`songs/${songId}`).snapshotChanges()
-      .pipe(
-        map(action => action.payload),
-        map(snapshot => {
-          if (snapshot.exists) {
-            return snapshot.data();
-          } else {
-            throwError(`song not found: ${songId}`);
-          }
-        })
-      );
+    return docSnapshots(doc(this.firestore, `songs/${songId}`)).pipe(
+      map(snapshot => {
+        if (snapshot.exists) {
+          return snapshot.data() as Song;
+        } else {
+          throw new Error(`song not found: ${songId}`);
+        }
+      }),
+    );
   }
 }

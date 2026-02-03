@@ -1,4 +1,7 @@
 .app-footer {
+  display: flex; 
+  flex-direction: row;
+  gap: 16px; 
   align-items: center;
   min-height: 48px;
   padding: 16px 32px;
@@ -19,7 +22,19 @@ a:hover {
   margin-left: 16px;
   text-align: right;
 }
-.label.small {
-  margin: 16px 0 0;
-  text-align: center;
+
+@media (max-width: 600px) {
+  .app-footer {
+    flex-direction: column; 
+    gap: 0px;  
+  }
+
+  .footer-spacer {
+    display: none;
+  }
+ 
+  .label {
+    margin: 16px 0 0;
+    text-align: center;
+  }
 }

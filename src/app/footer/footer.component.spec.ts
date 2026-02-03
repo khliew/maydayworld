@@ -1,55 +1,44 @@
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
-import { RouterLinkDirectiveStub } from 'src/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { provideRouter } from '@angular/router';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { EnvironmentService } from '../services/environment.service';
 import { FooterComponent } from './footer.component';
-import { By } from '@angular/platform-browser';
-
-class EnvironmentServiceStub {
-  env = { version: 'test version' };
-}
 
 describe('FooterComponent ', () => {
-  let comp: FooterComponent;
+  let component: FooterComponent;
   let environmentService: EnvironmentService;
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        FooterComponent,
-        { provide: EnvironmentService, useClass: EnvironmentServiceStub }
-      ]
+      providers: [FooterComponent, EnvironmentService],
     });
 
-    comp = TestBed.get(FooterComponent);
-    environmentService = TestBed.get(EnvironmentService);
+    component = TestBed.inject(FooterComponent);
+    environmentService = TestBed.inject(EnvironmentService);
   });
 
   it('should get the app version from environment', () => {
-    expect(comp.appVersion).toBe(environmentService.env.version);
+    expect(component.appVersion).toBe(environmentService.env.version);
   });
 });
 
 describe('FooterComponent (DOM)', () => {
-  let comp: FooterComponent;
   let fixture: ComponentFixture<FooterComponent>;
   let environmentService: EnvironmentService;
 
-  beforeEach(async(() => {
-    TestBed.configureTestingModule({
-      declarations: [
-        FooterComponent,
-        RouterLinkDirectiveStub
-      ],
-      providers: [{ provide: EnvironmentService, useClass: EnvironmentServiceStub }]
-    })
-      .compileComponents();
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [FooterComponent],
+      providers: [provideZonelessChangeDetection(), provideRouter([]), EnvironmentService],
+    }).compileComponents();
 
+    environmentService = TestBed.inject(EnvironmentService);
     fixture = TestBed.createComponent(FooterComponent);
-    comp = fixture.componentInstance;
-    environmentService = fixture.debugElement.injector.get(EnvironmentService);
 
-    fixture.detectChanges();
-  }));
+    await fixture.whenStable();
+  });
 
   it('should display the app version', () => {
     const footerEl: HTMLElement = fixture.nativeElement;
@@ -57,17 +46,19 @@ describe('FooterComponent (DOM)', () => {
     expect(el.textContent).toEqual(`v${environmentService.env.version}`);
   });
 
+  it('should display the current year', () => {
+    const footerEl: HTMLElement = fixture.nativeElement;
+    const el = footerEl.querySelector('.copyright');
+    expect(el.textContent).contains(`${new Date().getFullYear()}`);
+  });
+
   it('should route "about us" link to the correct page', () => {
     const linkDe = fixture.debugElement.query(By.css('.about-us'));
-    const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-    expect(routerLink.linkParams).toEqual('/about');
+    expect(linkDe.nativeElement.getAttribute('routerLink')).toEqual('/about');
   });
 
   it('should route "privacy policy" link to the correct page', () => {
     const linkDe = fixture.debugElement.query(By.css('.privacy'));
-    const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-    expect(routerLink.linkParams).toEqual('/privacy');
+    expect(linkDe.nativeElement.getAttribute('routerLink')).toEqual('/privacy');
   });
 });

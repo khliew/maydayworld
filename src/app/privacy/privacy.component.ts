@@ -1,14 +1,17 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
 
 @Component({
   selector: 'app-privacy',
   templateUrl: './privacy.component.html',
-  styleUrls: ['./privacy.component.css']
+  styleUrls: ['./privacy.component.css'],
 })
 export class PrivacyComponent {
-  constructor(private titleService: TitleService, private sidenavService: SidenavService) {
+  private titleService = inject(TitleService);
+  private sidenavService = inject(SidenavService);
+
+  constructor() {
     this.sidenavService.setEnabled(false);
     this.titleService.resetTitle();
   }

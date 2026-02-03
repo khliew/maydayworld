@@ -1,12 +1,25 @@
-import { TitleService, TITLE_DEFAULT } from './title.service';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { TestBed } from '@angular/core/testing';
+import { Title } from '@angular/platform-browser';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { TITLE_DEFAULT, TitleService } from './title.service';
 
 describe('TitleService', () => {
   let service: TitleService;
-  let titleSpy: { setTitle: jasmine.Spy };
+  let titleSpy: any;
 
-  beforeEach(() => {
-    titleSpy = jasmine.createSpyObj('Title', ['setTitle']);
-    service = new TitleService(titleSpy as any);
+  beforeEach(async () => {
+    titleSpy = { setTitle: vi.fn() };
+
+    await TestBed.configureTestingModule({
+      providers: [
+        provideZonelessChangeDetection(),
+        TitleService,
+        { provide: Title, useValue: titleSpy },
+      ],
+    }).compileComponents();
+
+    service = TestBed.inject(TitleService);
   });
 
   it('#setTitle sets the document title', () => {

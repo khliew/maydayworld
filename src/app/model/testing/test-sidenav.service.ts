@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
+import { vi } from 'vitest';
 
 @Injectable()
 export class SidenavServiceStub {
-  setEnabled = jasmine.createSpy('setEnabled');
+  setEnabled = vi.fn();
 }

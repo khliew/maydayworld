@@ -1,5 +1,8 @@
-import { Component, OnInit } from '@angular/core';
+import { AsyncPipe } from '@angular/common';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
+import { Observable } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Song } from '../model';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
@@ -7,29 +10,32 @@ import { TitleService } from '../services/title.service';
 @Component({
   selector: 'app-song-detail',
   templateUrl: './song-detail.component.html',
-  styleUrls: ['./song-detail.component.css']
+  styleUrls: ['./song-detail.component.css'],
+  imports: [AsyncPipe],
 })
 export class SongDetailComponent implements OnInit {
-  song: Song;
+  private titleService = inject(TitleService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private sidenavService = inject(SidenavService);
 
-  constructor(
-    private titleService: TitleService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private sidenavService: SidenavService
-  ) {
+  song$: Observable<Song>;
+
+  constructor() {
     this.sidenavService.setEnabled(true);
   }
 
   ngOnInit(): void {
-    this.route.data
-      .subscribe(data => {
+    this.song$ = this.route.data.pipe(
+      map(data => {
         if (data.song) {
-          this.song = data.song;
-          this.titleService.setTitle(this.song.title.chinese.zht);
+          this.titleService.setTitle(data.song.title.chinese.zht);
+          return data.song;
         } else {
           this.router.navigate(['../../../'], { relativeTo: this.route });
+          return null;
         }
-      });
+      }),
+    );
   }
 }

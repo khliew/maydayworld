@@ -1,49 +1,40 @@
-@import '~@angular/material/theming';
-// Plus imports for other components in your app.
+@use '@angular/material' as mat;
 
-// Include the common styles for Angular Material. We include this here so that you only
-// have to load a single css file for Angular Material in your app.
-// Be sure that you only ever include this mixin once!
-@include mat-core();
+@include mat.core();
 
-// Define the palettes for your theme using the Material Design palettes available in palette.scss
-// (imported above). For each palette, you can optionally specify a default, lighter, and darker
-// hue. Available color palettes: https://material.io/design/color/
-$candy-app-primary: mat-palette($mat-light-blue, 700);
-$candy-app-accent:  mat-palette($mat-pink, A200, A100, A400);
+$candy-app-primary: mat.m2-define-palette(mat.$m2-light-blue-palette, 700);
+$candy-app-accent: mat.m2-define-palette(mat.$m2-pink-palette, A200, A100, A400);
+$candy-app-warn: mat.m2-define-palette(mat.$m2-red-palette);
 
-// The warn palette is optional (defaults to red).
-$candy-app-warn:    mat-palette($mat-red);
-
-// Create the theme object (a Sass map containing all of the palettes).
-$candy-app-theme: mat-light-theme($candy-app-primary, $candy-app-accent, $candy-app-warn);
-
-// Include theme styles for core and each component used in your app.
-// Alternatively, you can import and @include the theme mixins for each component
-// that you are using.
-@include angular-material-theme($candy-app-theme);
-
-// include custom Chinese font in mat-typography
-$custom-typography: mat-typography-config(
-  $font-family: 'Roboto, Arial, "Noto Sans TC", sans-serif'
+$candy-app-theme: mat.m2-define-light-theme(
+  (
+    color: (
+      primary: $candy-app-primary,
+      accent: $candy-app-accent,
+      warn: $candy-app-warn,
+    ),
+  )
 );
-@include angular-material-typography($custom-typography);
 
-$primary: mat-color($mat-light-blue, 700);
-$primary-dark: mat-color($mat-light-blue, 900);
+@include mat.all-component-themes($candy-app-theme);
 
-// active item color
-$activated-item: mat-color($mat-light-blue, A100);
+$custom-typography: mat.m2-define-typography-config(
+  $font-family: 'Roboto, Arial, "Noto Sans TC", sans-serif',
+);
+@include mat.all-component-typographies($custom-typography);
+
+$primary: mat.m2-get-color-from-palette(mat.$m2-light-blue-palette, 700);
+$primary-dark: mat.m2-get-color-from-palette(mat.$m2-light-blue-palette, 900);
+
+$activated-item: mat.m2-get-color-from-palette(mat.$m2-light-blue-palette, A100);
 .active-nav-item {
   background-color: $activated-item !important;
 }
 
-// set app background color
 .mat-drawer-container {
   background-color: white;
 }
 
-// styling for sidenav
 .mat-drawer-inner-container {
   overflow: hidden !important;
 }
@@ -51,21 +42,19 @@ $activated-item: mat-color($mat-light-blue, A100);
   overflow: overlay !important;
 }
 .mat-drawer-inner-container::-webkit-scrollbar {
-  width: 6px,
+  width: 6px;
 }
 .mat-drawer-inner-container::-webkit-scrollbar-track {
-  background-color: #f0f0f0,
+  background-color: #f0f0f0;
 }
 .mat-drawer-inner-container::-webkit-scrollbar-thumb {
-  background-color: lightgray,
+  background-color: lightgray;
 }
 
-// styling for home header
 .header-title {
   color: $primary;
 }
 
-// styling for app footer
 .app-footer {
   background-color: $primary;
 }

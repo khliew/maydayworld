@@ -1,65 +1,61 @@
 import { DatePipe } from '@angular/common';
-import { async, ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ActivatedRoute } from '@angular/router';
-import { RouterTestingModule } from '@angular/router/testing';
-import { of } from 'rxjs';
-import { RouterLinkDirectiveStub } from 'src/testing';
-import { Album, Song } from '../model';
-import { getTestAlbum, SidenavServiceStub, TitleServiceStub } from '../model/testing';
+import { ActivatedRoute, provideRouter } from '@angular/router';
+import { firstValueFrom, of } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { Album, Track } from '../model';
+import { getTestAlbum } from '../model/testing';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { SharedModule } from '../shared/shared.module';
 import { AlbumDetailComponent } from './album-detail.component';
 
 describe('AlbumDetailsComponent', () => {
   let fixture: ComponentFixture<AlbumDetailComponent>;
-  let comp: AlbumDetailComponent;
+  let component: AlbumDetailComponent;
   let activatedRoute: ActivatedRoute;
   let sidenavService: SidenavService;
   let titleService: TitleService;
   let testAlbum: Album;
 
-  beforeEach(async(() => {
+  beforeEach(async () => {
     testAlbum = getTestAlbum();
     activatedRoute = { data: of({ album: testAlbum }) } as any;
 
-    TestBed.configureTestingModule({
-      imports: [
-        SharedModule,
-        RouterTestingModule
-      ],
-      declarations: [
-        AlbumDetailComponent,
-        RouterLinkDirectiveStub
-      ],
+    await TestBed.configureTestingModule({
+      imports: [AlbumDetailComponent],
       providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
         { provide: ActivatedRoute, useValue: activatedRoute },
-        { provide: SidenavService, useClass: SidenavServiceStub },
-        { provide: TitleService, useClass: TitleServiceStub }
-      ]
-    })
-      .compileComponents();
+        TitleService,
+        SidenavService,
+      ],
+    }).compileComponents();
+
+    sidenavService = TestBed.inject(SidenavService);
+    titleService = TestBed.inject(TitleService);
+
+    vi.spyOn(sidenavService, 'setEnabled');
+    vi.spyOn(titleService, 'setTitle');
 
     fixture = TestBed.createComponent(AlbumDetailComponent);
-    comp = fixture.componentInstance;
+    component = fixture.componentInstance;
 
-    const injector = fixture.debugElement.injector;
-    sidenavService = injector.get(SidenavService);
-    titleService = injector.get(TitleService);
+    await fixture.whenStable();
+  });
 
-    fixture.detectChanges(); // ngOnInit()
-  }));
-
-  it('should get an album', () => {
-    expect(comp.album).toBe(testAlbum);
+  it('should get an album', async () => {
+    const album = await firstValueFrom(component.album$);
+    expect(album).toBe(testAlbum);
   });
 
   it('should show the sidenav', () => {
     expect(sidenavService.setEnabled).toHaveBeenCalledWith(true);
   });
 
-  it('should set the album\'s Chinese title as the document title', () => {
+  it("should set the album's Chinese title as the document title", () => {
     expect(titleService.setTitle).toHaveBeenCalledWith(testAlbum.title.chinese.zht);
   });
 
@@ -103,25 +99,25 @@ describe('AlbumDetailsComponent', () => {
   describe('tracks', () => {
     let albumDetailEl: HTMLElement;
     let songEl: HTMLElement;
-    let testSong: Song;
+    let testSong: Track;
 
     beforeEach(() => {
-      testSong = testAlbum.songs[0];
+      testSong = testAlbum.songs['1'];
       albumDetailEl = fixture.nativeElement;
       songEl = albumDetailEl.querySelector('.track-item');
     });
 
-    it('should display a track\'s number', () => {
+    it("should display a track's number", () => {
       const el: HTMLElement = songEl.querySelector('.track-number');
       expect(el.textContent).toEqual('1');
     });
 
-    it('should display a track\'s Chinese title', () => {
+    it("should display a track's Chinese title", () => {
       const el: HTMLElement = songEl.querySelector('.track-chinese');
       expect(el.textContent).toEqual(testSong.title.chinese.zht);
     });
 
-    it('should display a track\'s English title', () => {
+    it("should display a track's English title", () => {
       const el: HTMLElement = songEl.querySelector('.track-english');
       expect(el.textContent).toEqual(testSong.title.english);
     });
@@ -132,10 +128,10 @@ describe('AlbumDetailsComponent', () => {
     });
 
     it('should route to the correct link', () => {
-      const linkDe = fixture.debugElement.query(By.directive(RouterLinkDirectiveStub));
-      const routerLink = linkDe.injector.get(RouterLinkDirectiveStub);
-
-      expect(routerLink.linkParams).toEqual(['/album', testAlbum.id, 'song', testSong.id]);
+      const linkDe = fixture.debugElement.query(By.css('.track-item'));
+      expect(linkDe.nativeElement.getAttribute('href')).toEqual(
+        `/album/${testAlbum.id}/song/${testSong.id}`,
+      );
     });
   });
 });

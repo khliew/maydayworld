@@ -1,21 +1,45 @@
+import { provideZonelessChangeDetection } from '@angular/core';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
+import { beforeEach, describe, expect, it, MockInstance, vi } from 'vitest';
+import { SidenavService } from '../services/sidenav.service';
+import { TitleService } from '../services/title.service';
 import { PrivacyComponent } from './privacy.component';
 
 describe('PrivacyComponent', () => {
-  let sidenavService: { setEnabled: jasmine.Spy };
-  let titleService: { resetTitle: jasmine.Spy };
+  let component: PrivacyComponent;
+  let fixture: ComponentFixture<PrivacyComponent>;
+  let setEnabledSpy: MockInstance<(enabled: boolean) => void>;
+  let resetTitleSpy: MockInstance<() => void>;
 
-  beforeEach(() => {
-    sidenavService = jasmine.createSpyObj('SidenavService', ['setEnabled']);
-    titleService = jasmine.createSpyObj('TitleService', ['resetTitle']);
+  beforeEach(async () => {
+    await TestBed.configureTestingModule({
+      imports: [PrivacyComponent],
+      providers: [
+        provideZonelessChangeDetection(),
+        provideRouter([]),
+        TitleService,
+        SidenavService,
+      ],
+    }).compileComponents();
+
+    const sidenavService = TestBed.inject(SidenavService);
+    const titleService = TestBed.inject(TitleService);
+
+    setEnabledSpy = vi.spyOn(sidenavService, 'setEnabled');
+    resetTitleSpy = vi.spyOn(titleService, 'resetTitle');
+
+    fixture = TestBed.createComponent(PrivacyComponent);
+    component = fixture.componentInstance;
+
+    await fixture.whenStable();
   });
 
   it('should hide the sidenav', () => {
-    const comp = new PrivacyComponent(titleService as any, sidenavService as any);
-    expect(sidenavService.setEnabled).toHaveBeenCalledWith(false);
+    expect(setEnabledSpy).toHaveBeenCalledWith(false);
   });
 
   it('should reset the document title', () => {
-    const comp = new PrivacyComponent(titleService as any, sidenavService as any);
-    expect(titleService.resetTitle).toHaveBeenCalled();
+    expect(resetTitleSpy).toHaveBeenCalled();
   });
 });

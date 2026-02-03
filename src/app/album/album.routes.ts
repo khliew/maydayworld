@@ -1,5 +1,4 @@
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
+import { Routes } from '@angular/router';
 import { SongDetailComponent } from '../song/song-detail.component';
 import { SongListComponent } from '../song/song-list.component';
 import { SongResolverService } from '../song/song-resolver.service';
@@ -7,46 +6,40 @@ import { AlbumDetailComponent } from './album-detail.component';
 import { AlbumListComponent } from './album-list.component';
 import { AlbumResolverService } from './album-resolver.service';
 
-const albumRoutes: Routes = [
+export const ALBUM_ROUTES: Routes = [
   {
     path: ':albumId',
     resolve: {
-      album: AlbumResolverService
+      album: AlbumResolverService,
     },
     children: [
       {
         path: '',
         component: AlbumListComponent,
-        outlet: 'sidenav'
+        outlet: 'sidenav',
       },
       {
         path: '',
-        component: AlbumDetailComponent
+        component: AlbumDetailComponent,
       },
-    ]
+    ],
   },
   {
     path: ':albumId/song/:songId',
     resolve: {
       album: AlbumResolverService,
-      song: SongResolverService
+      song: SongResolverService,
     },
     children: [
       {
         path: '',
         component: SongListComponent,
-        outlet: 'sidenav'
+        outlet: 'sidenav',
       },
       {
         path: '',
-        component: SongDetailComponent
+        component: SongDetailComponent,
       },
-    ]
-  }
+    ],
+  },
 ];
-
-@NgModule({
-  imports: [RouterModule.forChild(albumRoutes)],
-  exports: [RouterModule]
-})
-export class AlbumRoutingModule { }

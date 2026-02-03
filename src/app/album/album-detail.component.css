@@ -36,8 +36,6 @@
   margin-bottom: 16px;
 }
 .track-item.disabled {
-  pointer-events: none;
-  cursor: default;
   color: lightgray;
   border: initial;
 }

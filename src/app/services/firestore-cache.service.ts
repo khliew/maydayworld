@@ -3,7 +3,7 @@ import { Album, Discography, Song } from '../model';
 
 @Injectable()
 export class FirestoreCache {
-  private static readonly MAX_AGE = 60 * 60 * 1000; // maximum cache age (ms)
+  private static readonly MAX_AGE_IN_MILLIS = 60 * 60 * 1000;
 
   private cache: Map<string, Cached>;
 
@@ -41,14 +41,14 @@ export class FirestoreCache {
       return undefined;
     }
 
-    const isExpired = cached.lastRead < (Date.now() - FirestoreCache.MAX_AGE);
+    const isExpired = cached.lastRead < Date.now() - FirestoreCache.MAX_AGE_IN_MILLIS;
 
     // remove item if expired
     if (isExpired) {
       this.cache.delete(itemId);
     }
 
-    return isExpired ? undefined : cached.item as T;
+    return isExpired ? undefined : (cached.item as T);
   }
 
   put<T>(itemId: string, item: T) {
@@ -56,7 +56,7 @@ export class FirestoreCache {
     this.cache.set(itemId, { id: itemId, item, lastRead: now });
 
     // remove expired cache items
-    const expired = now - FirestoreCache.MAX_AGE;
+    const expired = now - FirestoreCache.MAX_AGE_IN_MILLIS;
     this.cache.forEach(entry => {
       if (entry.lastRead < expired) {
         this.cache.delete(entry.id);

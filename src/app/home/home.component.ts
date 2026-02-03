@@ -1,14 +1,19 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
+import { AlbumsComponent } from '../albums/albums.component';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
 
 @Component({
   selector: 'app-home',
   templateUrl: './home.component.html',
-  styleUrls: ['./home.component.css']
+  styleUrls: ['./home.component.css'],
+  imports: [AlbumsComponent],
 })
 export class HomeComponent implements OnInit {
-  constructor(private titleService: TitleService, private sidenavService: SidenavService) {
+  private titleService = inject(TitleService);
+  private sidenavService = inject(SidenavService);
+
+  constructor() {
     this.sidenavService.setEnabled(false);
   }
 

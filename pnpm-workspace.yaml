@@ -1,0 +1,10 @@
+onlyBuiltDependencies:
+  - '@angular/cli'
+  - '@firebase/util'
+  - '@parcel/watcher'
+  - core-js
+  - esbuild
+  - grpc
+  - lmdb
+  - msgpackr-extract
+  - protobufjs
