@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { Auth, signInWithEmailAndPassword } from '@angular/fire/auth';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
@@ -16,6 +16,12 @@ import { TitleService } from '../services/title.service';
 export class LogInComponent {
   private static readonly TIMEOUT_INCREMENT = 1000; // ms
 
+  private titleService = inject(TitleService);
+  private fb = inject(FormBuilder);
+  private sidenavService = inject(SidenavService);
+  private router = inject(Router);
+  private auth = inject(Auth);
+
   credentials = this.fb.group({
     email: [''],
     password: [''],
@@ -24,13 +30,7 @@ export class LogInComponent {
   failCount: number;
   timeout: number;
 
-  constructor(
-    private titleService: TitleService,
-    private fb: FormBuilder,
-    private sidenavService: SidenavService,
-    private router: Router,
-    private auth: Auth,
-  ) {
+  constructor() {
     this.failCount = 0;
     this.timeout = 0;
 

@@ -1,5 +1,5 @@
 import { AsyncPipe, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatListModule } from '@angular/material/list';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -15,15 +15,15 @@ import { TitleService } from '../services/title.service';
   imports: [AsyncPipe, MatListModule, RouterLink, DatePipe],
 })
 export class AlbumDetailComponent implements OnInit {
+  private titleService = inject(TitleService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private sidenavService = inject(SidenavService);
+
   album$: Observable<Album>;
   trackKeys$: Observable<number[]>;
 
-  constructor(
-    private titleService: TitleService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private sidenavService: SidenavService,
-  ) {
+  constructor() {
     this.sidenavService.setEnabled(true);
   }
 

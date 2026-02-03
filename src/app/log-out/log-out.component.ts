@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { Auth, signOut } from '@angular/fire/auth';
 import { Router } from '@angular/router';
 
@@ -8,10 +8,8 @@ import { Router } from '@angular/router';
   styleUrls: ['./log-out.component.css'],
 })
 export class LogOutComponent implements OnInit {
-  constructor(
-    private auth: Auth,
-    private router: Router,
-  ) {}
+  private auth = inject(Auth);
+  private router = inject(Router);
 
   ngOnInit() {
     this.logOut();

@@ -1,6 +1,6 @@
 import { BreakpointObserver, Breakpoints } from '@angular/cdk/layout';
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, OnDestroy, OnInit, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, inject, OnDestroy, OnInit, ViewChild } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatIconModule } from '@angular/material/icon';
 import { MatSidenav, MatSidenavModule } from '@angular/material/sidenav';
@@ -35,11 +35,11 @@ export class AppComponent implements OnInit, AfterViewInit, OnDestroy {
 
   mediaSub: Subscription;
 
-  constructor(
-    private router: Router,
-    private sidenavService: SidenavService,
-    private breakpointObserver: BreakpointObserver,
-  ) {
+  private router = inject(Router);
+  private sidenavService = inject(SidenavService);
+  private breakpointObserver = inject(BreakpointObserver);
+
+  constructor() {
     this.analyticsEnabled = typeof (window as any).ga === 'function';
     this.sidenavEnabled = false;
   }

@@ -1,5 +1,5 @@
 import { AsyncPipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -14,14 +14,14 @@ import { TitleService } from '../services/title.service';
   imports: [AsyncPipe],
 })
 export class SongDetailComponent implements OnInit {
+  private titleService = inject(TitleService);
+  private router = inject(Router);
+  private route = inject(ActivatedRoute);
+  private sidenavService = inject(SidenavService);
+
   song$: Observable<Song>;
 
-  constructor(
-    private titleService: TitleService,
-    private router: Router,
-    private route: ActivatedRoute,
-    private sidenavService: SidenavService,
-  ) {
+  constructor() {
     this.sidenavService.setEnabled(true);
   }
 

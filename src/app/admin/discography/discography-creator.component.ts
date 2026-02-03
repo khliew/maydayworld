@@ -1,4 +1,4 @@
-import { AfterViewInit, Component, ElementRef, ViewChild } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -15,6 +15,9 @@ import { SectionsParser } from './sections-parser';
   imports: [ReactiveFormsModule, MatFormField, MatInput, MatIconButton, MatIcon, MatCheckbox],
 })
 export class DiscographyCreatorComponent implements AfterViewInit {
+  private fb = inject(FormBuilder);
+  private adminService = inject(AdminService);
+
   discoForm = this.fb.group({
     artistId: [''],
   });
@@ -31,10 +34,7 @@ export class DiscographyCreatorComponent implements AfterViewInit {
   searchDisabled: boolean;
   searchError: string;
 
-  constructor(
-    private fb: FormBuilder,
-    private adminService: AdminService,
-  ) {
+  constructor() {
     this.sectionsParser = new SectionsParser();
     this.hideOutput = true;
     this.buttonsDisabled = false;

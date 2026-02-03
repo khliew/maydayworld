@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
@@ -43,6 +43,9 @@ import { AdminService } from '../admin.service';
   ],
 })
 export class AlbumCreatorComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private adminService = inject(AdminService);
+
   search = this.fb.control('');
   tracksForm = this.fb.array([this.createTrackForm()]);
   albumForm = this.fb.group({
@@ -70,10 +73,7 @@ export class AlbumCreatorComponent implements OnInit {
   removedTracks: Set<string>;
   resetting: boolean;
 
-  constructor(
-    private fb: FormBuilder,
-    private adminService: AdminService,
-  ) {
+  constructor() {
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';

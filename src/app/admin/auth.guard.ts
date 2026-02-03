@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Auth, authState } from '@angular/fire/auth';
 import { CanMatch, Router } from '@angular/router';
 
@@ -6,10 +6,8 @@ import { CanMatch, Router } from '@angular/router';
   providedIn: 'root',
 })
 export class AuthGuard implements CanMatch {
-  constructor(
-    private auth: Auth,
-    private router: Router,
-  ) {}
+  private auth = inject(Auth);
+  private router = inject(Router);
 
   canMatch() {
     return this.checkAuth();

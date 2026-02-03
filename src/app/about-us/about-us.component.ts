@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
+import { MatIconButton } from '@angular/material/button';
 import { SidenavService } from '../services/sidenav.service';
 import { TitleService } from '../services/title.service';
-import { MatIconButton } from '@angular/material/button';
 
 @Component({
   selector: 'app-about-us',
@@ -10,10 +10,10 @@ import { MatIconButton } from '@angular/material/button';
   imports: [MatIconButton],
 })
 export class AboutUsComponent {
-  constructor(
-    private titleService: TitleService,
-    private sidenavService: SidenavService,
-  ) {
+  private titleService = inject(TitleService);
+  private sidenavService = inject(SidenavService);
+
+  constructor() {
     this.sidenavService.setEnabled(false);
     this.titleService.resetTitle();
   }

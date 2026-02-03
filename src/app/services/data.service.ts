@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
 import { Album, Discography, Song } from '../model';
@@ -7,10 +7,8 @@ import { FirestoreService } from './firestore.service';
 
 @Injectable()
 export class DataService {
-  constructor(
-    private firestoreService: FirestoreService,
-    private firestoreCache: FirestoreCache,
-  ) {}
+  private firestoreService = inject(FirestoreService);
+  private firestoreCache = inject(FirestoreCache);
 
   getDiscography(artistId: string = 'mayday'): Observable<Discography> {
     const cached = this.firestoreCache.getDiscography(artistId);

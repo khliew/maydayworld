@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCard } from '@angular/material/card';
@@ -28,6 +28,9 @@ import { LyricsParser } from './lyrics-parser';
   ],
 })
 export class SongCreatorComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private adminService = inject(AdminService);
+
   search = this.fb.control('');
   songForm = this.fb.group({
     songId: [''],
@@ -50,10 +53,7 @@ export class SongCreatorComponent implements OnInit {
 
   searchError: string;
 
-  constructor(
-    private fb: FormBuilder,
-    private adminService: AdminService,
-  ) {
+  constructor() {
     this.lyricsParser = new LyricsParser();
     this.hideOutput = true;
     this.response = '';

@@ -1,5 +1,5 @@
 import { AsyncPipe, DatePipe } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { Component, inject, OnInit } from '@angular/core';
 import { MatListModule } from '@angular/material/list';
 import { RouterLink } from '@angular/router';
 import { Observable } from 'rxjs';
@@ -13,9 +13,9 @@ import { DataService } from '../services/data.service';
   imports: [AsyncPipe, MatListModule, RouterLink, DatePipe],
 })
 export class AlbumsComponent implements OnInit {
-  discography$: Observable<Discography>;
+  private dataService = inject(DataService);
 
-  constructor(private dataService: DataService) {}
+  discography$: Observable<Discography>;
 
   ngOnInit(): void {
     this.discography$ = this.dataService.getDiscography();

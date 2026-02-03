@@ -1,9 +1,9 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Title } from '@angular/platform-browser';
 
 @Injectable()
 export class TitleService {
-  constructor(private title: Title) {}
+  private title = inject(Title);
 
   public setTitle(newTitle: string): void {
     this.title.setTitle(`${newTitle} - ${TITLE_DEFAULT}`);

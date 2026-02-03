@@ -1,12 +1,12 @@
-import { Injectable } from '@angular/core';
-import { Firestore, doc, docSnapshots } from '@angular/fire/firestore';
+import { inject, Injectable } from '@angular/core';
+import { doc, docSnapshots, Firestore } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Album, Discography, Song } from '../model';
 
 @Injectable()
 export class FirestoreService {
-  constructor(private firestore: Firestore) {}
+  private firestore = inject(Firestore);
 
   getDiscography(artistId: string = 'mayday'): Observable<Discography> {
     return docSnapshots(doc(this.firestore, `discos/${artistId}`)).pipe(

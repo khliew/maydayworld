@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { EnvironmentService } from '../services/environment.service';
 
@@ -9,10 +9,8 @@ import { EnvironmentService } from '../services/environment.service';
   imports: [RouterLink],
 })
 export class FooterComponent {
-  appVersion: string;
-  currentYear = new Date().getFullYear();
+  private environmentService = inject(EnvironmentService);
 
-  constructor(environmentService: EnvironmentService) {
-    this.appVersion = environmentService.env.version;
-  }
+  appVersion = this.environmentService.env.version;
+  currentYear = new Date().getFullYear();
 }
