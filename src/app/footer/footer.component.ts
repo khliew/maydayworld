@@ -10,6 +10,7 @@ import { EnvironmentService } from '../services/environment.service';
 })
 export class FooterComponent {
   appVersion: string;
+  currentYear = new Date().getFullYear();
 
   constructor(environmentService: EnvironmentService) {
     this.appVersion = environmentService.env.version;

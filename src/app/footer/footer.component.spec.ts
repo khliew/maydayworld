@@ -46,6 +46,12 @@ describe('FooterComponent (DOM)', () => {
     expect(el.textContent).toEqual(`v${environmentService.env.version}`);
   });
 
+  it('should display the current year', () => {
+    const footerEl: HTMLElement = fixture.nativeElement;
+    const el = footerEl.querySelector('.copyright');
+    expect(el.textContent).contains(`${new Date().getFullYear()}`);
+  });
+
   it('should route "about us" link to the correct page', () => {
     const linkDe = fixture.debugElement.query(By.css('.about-us'));
     expect(linkDe.nativeElement.getAttribute('routerLink')).toEqual('/about');
