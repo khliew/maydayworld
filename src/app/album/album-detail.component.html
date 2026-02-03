@@ -17,8 +17,9 @@
         @if (album.songs[trackKey]; as song) {
           <a
             mat-list-item
-            [routerLink]="['/album', album.id, 'song', song.id]"
             class="track-item"
+            [routerLink]="song.disabled ? null : ['/album', album.id, 'song', song.id]"
+            [disabled]="song.disabled"
             [class.disabled]="song.disabled"
           >
             <div matListItemMeta class="track-number">{{ trackKey }}</div>
