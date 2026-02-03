@@ -23,8 +23,9 @@
             @for (album of section.albums; track album.id) {
               <a
                 mat-list-item
-                [routerLink]="['/album', album.id]"
+                [routerLink]="album.disabled ? null : ['/album', album.id]"
                 class="album-card"
+                [disabled]="album.disabled"
                 [class.disabled]="album.disabled"
               >
                 <div matListItemLine class="title-chinese">{{ album.title.chinese.zht }}</div>

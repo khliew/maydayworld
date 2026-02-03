@@ -30,12 +30,7 @@
   padding: 16px; 
   height: auto !important; 
 }
-.album-card:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
 .album-card.disabled {
-  pointer-events: none;
-  cursor: default;
   border: 1px solid lightgray;
 }
 .album-title {
@@ -57,7 +52,4 @@
   font-size: 16px;
   margin-top: 8px;
   color: gray;
-}
-.disabled * {
-  color: lightgray;
 }

@@ -20,10 +20,6 @@
 .track-list {
   padding-bottom: 32px;
 }
-.track-item {
-}
 .track-item.disabled {
-  pointer-events: none;
-  cursor: default;
   color: lightgray;
 }

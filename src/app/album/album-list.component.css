@@ -13,11 +13,6 @@
 }
 .list-item {
 }
-.list-item:hover {
-  background-color: rgba(0, 0, 0, 0.04);
-}
 .list-item.disabled {
-  pointer-events: none;
-  cursor: default;
   color: lightgray;
 }

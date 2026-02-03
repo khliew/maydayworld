@@ -1,5 +1,5 @@
 @if (album$ | async; as album) {
-  <a mat-icon-button [routerLink]="['../../../']" class="go-up">
+  <a mat-icon-button [routerLink]="['../../']" class="go-up">
     <mat-icon>arrow_back</mat-icon>
   </a>
   <div class="album-title">
@@ -16,10 +16,10 @@
       @if (album.songs[trackKey]; as song) {
         <a
           mat-list-item
-          [routerLink]="['/album', album.id, 'song', song.id]"
+          [routerLink]="song.disabled ? null : ['/album', album.id, 'song', song.id]"
           class="track-item"
+          [disabled]="song.disabled"
           [class.disabled]="song.disabled"
-          routerLinkActive="active-nav-item"
         >
           <span matListItemTitle>{{ trackKey }}. {{ song.title.chinese.zht }}</span>
         </a>
