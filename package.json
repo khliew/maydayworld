@@ -26,7 +26,7 @@
     "@angular/platform-browser": "^21.1.1",
     "@angular/router": "^21.1.1",
     "@ngrx/store": "^21.0.1",
-    "firebase": "^11.0.1",
+    "firebase": "^11.10.0",
     "rxjs": "~7.8.1",
     "tslib": "^2.6.2"
   },
@@ -34,7 +34,7 @@
     "@analogjs/vite-plugin-angular": "^2.2.3",
     "@analogjs/vitest-angular": "^2.2.3",
     "@angular-devkit/build-angular": "^21.1.1",
-    "@angular/cli": "^21.1.1",
+    "@angular/cli": "^21.1.2",
     "@angular/compiler-cli": "^21.1.1",
     "@angular/language-service": "^21.1.1",
     "@types/google.analytics": "^0.0.40",
