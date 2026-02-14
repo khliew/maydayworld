@@ -34,7 +34,7 @@
     "@analogjs/vite-plugin-angular": "^2.2.3",
     "@analogjs/vitest-angular": "^2.2.3",
     "@angular-devkit/build-angular": "^21.1.1",
-    "@angular/cli": "^21.1.1",
+    "@angular/cli": "^21.1.4",
     "@angular/compiler-cli": "^21.1.1",
     "@angular/language-service": "^21.1.1",
     "@types/google.analytics": "^0.0.40",
