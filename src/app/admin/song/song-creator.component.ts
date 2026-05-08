@@ -1,14 +1,31 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
+import {
+  AbstractControl,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
 import { MatButton } from '@angular/material/button';
 import { MatCard } from '@angular/material/card';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
+import { catchError, concatMap, throwError } from 'rxjs';
 import { Line, Song, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
 import { LyricsParseDiagnostic, LyricsParseResult, LyricsParser } from './lyrics-parser';
+
+function trimmedRequired(control: AbstractControl): ValidationErrors | null {
+  const value = control.value;
+  if (typeof value !== 'string') {
+    return Validators.required(control);
+  }
+
+  return value.trim().length > 0 ? null : { required: true };
+}
 
 @Component({
   selector: 'app-song-creator',
@@ -25,6 +42,7 @@ import { LyricsParseDiagnostic, LyricsParseResult, LyricsParser } from './lyrics
     MatLabel,
     MatButton,
     MatCard,
+    MatError,
   ],
 })
 export class SongCreatorComponent implements OnInit {
@@ -33,10 +51,12 @@ export class SongCreatorComponent implements OnInit {
 
   search = this.fb.control('');
   songForm = this.fb.group({
-    songId: [''],
+    songId: ['', trimmedRequired],
     disabled: [false],
-    chineseTitle: [''],
-    englishTitle: [''],
+    traditionalTitle: ['', trimmedRequired],
+    pinyinTitle: ['', trimmedRequired],
+    titleTranslation: ['', trimmedRequired],
+    englishTitle: ['', trimmedRequired],
     lyricist: [''],
     composer: [''],
     arranger: [''],
@@ -117,10 +137,10 @@ export class SongCreatorComponent implements OnInit {
       .setValue(typeof song.disabled !== 'undefined' ? song.disabled : false);
 
     const title = song.title;
-    this.songForm
-      .get('chineseTitle')
-      .setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
-    this.songForm.get('englishTitle').setValue(title.english);
+    this.songForm.get('traditionalTitle').setValue(title.chinese?.zht || '');
+    this.songForm.get('pinyinTitle').setValue(title.chinese?.zhp || '');
+    this.songForm.get('titleTranslation').setValue(title.chinese?.eng || '');
+    this.songForm.get('englishTitle').setValue(title.english || '');
 
     this.songForm.get('lyricist').setValue(song.lyricist);
     this.songForm.get('composer').setValue(song.composer);
@@ -160,21 +180,34 @@ export class SongCreatorComponent implements OnInit {
 
   createFormSong() {
     const song = new Song();
-    song.id = this.songForm.get('songId').value;
+    song.id = this.trimFormValue('songId');
 
     song.disabled = this.songForm.get('disabled').value;
 
-    song.lyricist = this.songForm.get('lyricist').value;
-    song.composer = this.songForm.get('composer').value;
-    song.arranger = this.songForm.get('arranger').value;
+    song.lyricist = this.trimFormValue('lyricist');
+    song.composer = this.trimFormValue('composer');
+    song.arranger = this.trimFormValue('arranger');
 
     song.title = this.parseTitle(
-      this.songForm.get('chineseTitle').value,
+      this.songForm.get('traditionalTitle').value,
+      this.songForm.get('pinyinTitle').value,
+      this.songForm.get('titleTranslation').value,
       this.songForm.get('englishTitle').value,
     );
 
     song.lyrics = this.parseLyrics(this.songForm.get('lyrics').value);
     return song;
+  }
+
+  createSongMetadata(song: Song): SongMetadata {
+    const metadata = new SongMetadata();
+    metadata.id = song.id;
+    metadata.title = song.title;
+    metadata.lyricist = song.lyricist;
+    metadata.composer = song.composer;
+    metadata.arranger = song.arranger;
+    metadata.disabled = song.disabled;
+    return metadata;
   }
 
   generateJson() {
@@ -187,18 +220,14 @@ export class SongCreatorComponent implements OnInit {
     this.outputForm.setValue(JSON.stringify(this.output, null, 2));
   }
 
-  parseTitle(chinese: string, english: string): Title {
+  parseTitle(zht: string, zhp: string, eng: string, english: string): Title {
     const title = new Title();
-    title.english = english;
-
-    if (!!chinese) {
-      const parts = chinese.split('\n');
-      title.chinese = {
-        zht: parts[0] && parts[0].trim(),
-        zhp: parts[1] && parts[1].trim(),
-        eng: parts[2] && parts[2].trim(),
-      };
-    }
+    title.english = (english || '').trim();
+    title.chinese = {
+      zht: (zht || '').trim(),
+      zhp: (zhp || '').trim(),
+      eng: (eng || '').trim(),
+    };
 
     return title;
   }
@@ -220,12 +249,32 @@ export class SongCreatorComponent implements OnInit {
     return this.lyricsDiagnostics.length > 0;
   }
 
+  hasFieldError(controlName: string, errorName: string): boolean {
+    const control = this.songForm.get(controlName);
+    return !!control && control.hasError(errorName) && (control.dirty || control.touched);
+  }
+
+  hasFormValidationErrors(): boolean {
+    return this.songForm.invalid;
+  }
+
   canSave(): boolean {
-    return !this.songForm.disabled && (!this.readonly.value || !this.hasLyricsValidationErrors());
+    return (
+      !this.songForm.disabled &&
+      (!this.readonly.value ||
+        (!this.hasFormValidationErrors() && !this.hasLyricsValidationErrors()))
+    );
   }
 
   save() {
     if (this.readonly.value) {
+      this.songForm.markAllAsTouched();
+
+      if (this.hasFormValidationErrors()) {
+        this.response = 'Fix required song fields before saving.';
+        return;
+      }
+
       const lyricsResult = this.validateLyrics();
       if (lyricsResult.diagnostics.length > 0) {
         this.response = 'Fix lyrics validation errors before saving.';
@@ -234,20 +283,68 @@ export class SongCreatorComponent implements OnInit {
 
       this.output = this.createFormSong();
     } else {
-      this.output = JSON.parse(this.outputForm.value);
+      try {
+        this.output = JSON.parse(this.outputForm.value);
+      } catch (err) {
+        this.response = `JSON parse failed: ${this.formatError(err)}`;
+        return;
+      }
     }
 
     this.response = '';
     this.setFormsEnabled(false);
-    this.adminService.setSong(this.output.id, this.output).subscribe(
-      () => {
-        this.response = 'Song saved!';
-        this.setFormsEnabled(true);
-      },
-      err => {
-        this.response = err;
-        this.setFormsEnabled(true);
-      },
-    );
+    const metadata = this.createSongMetadata(this.output);
+    this.adminService
+      .setSong(this.output.id, this.output)
+      .pipe(
+        catchError(err => {
+          return throwError(() => new Error(`Song write failed: ${this.formatError(err)}`));
+        }),
+        concatMap(() =>
+          this.adminService.setSongMetadata(this.output.id, metadata).pipe(
+            catchError(err => {
+              return throwError(() => new Error(`Metadata write failed: ${this.formatError(err)}`));
+            }),
+          ),
+        ),
+      )
+      .subscribe(
+        () => {
+          this.upsertSongMetadata(metadata);
+          this.response = 'Song and metadata saved!';
+          this.setFormsEnabled(true);
+        },
+        err => {
+          this.response = this.formatError(err);
+          this.setFormsEnabled(true);
+        },
+      );
+  }
+
+  private trimFormValue(controlName: string): string {
+    return (this.songForm.get(controlName).value || '').trim();
+  }
+
+  private upsertSongMetadata(metadata: SongMetadata) {
+    if (!this.songMds) {
+      return;
+    }
+
+    const nextSongMds = this.songMds.filter(song => song.id !== metadata.id);
+    nextSongMds.push(metadata);
+    this.songMds = nextSongMds.sort((a, b) => a.id.localeCompare(b.id));
+    this.search.setValue(metadata.id, { emitEvent: false });
+  }
+
+  private formatError(err: any): string {
+    if (err instanceof Error) {
+      return err.message;
+    }
+
+    if (typeof err === 'string') {
+      return err;
+    }
+
+    return JSON.stringify(err);
   }
 }

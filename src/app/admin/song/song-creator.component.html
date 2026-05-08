@@ -2,7 +2,8 @@
   <h2>Song Creator</h2>
   <div>
     <mat-form-field appearance="outline" class="search-field">
-      <mat-select placeholder="Select a song" [formControl]="search">
+      <mat-label>Select a song</mat-label>
+      <mat-select [formControl]="search">
         @for (song of songMds; track song.id) {
           <mat-option [value]="song.id"> {{ song.id }} - {{ song.title.chinese.zht }} </mat-option>
         }
@@ -12,7 +13,11 @@
   </div>
   <form [formGroup]="songForm">
     <mat-form-field class="meta-field">
-      <input matInput formControlName="songId" placeholder="Song ID" />
+      <mat-label>Song ID</mat-label>
+      <input matInput formControlName="songId" />
+      @if (hasFieldError('songId', 'required')) {
+        <mat-error>Song ID is required.</mat-error>
+      }
     </mat-form-field>
     <div class="disable-song">
       <mat-checkbox
@@ -22,33 +27,58 @@
         Disabled
       </mat-checkbox>
     </div>
-    <mat-form-field class="title-field" appearance="outline">
-      <mat-label>Chinese title, pinyin and translation</mat-label>
-      <textarea
-        matInput
-        rows="3"
-        formControlName="chineseTitle"
-        placeholder="Enter each on a new line"
-      ></textarea>
-    </mat-form-field>
     <div>
       <mat-form-field class="title-field">
-        <input matInput placeholder="English title" formControlName="englishTitle" />
+        <mat-label>Traditional Chinese title</mat-label>
+        <input matInput formControlName="traditionalTitle" />
+        @if (hasFieldError('traditionalTitle', 'required')) {
+          <mat-error>Traditional Chinese title is required.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+    <div>
+      <mat-form-field class="title-field">
+        <mat-label>Pinyin title</mat-label>
+        <input matInput formControlName="pinyinTitle" />
+        @if (hasFieldError('pinyinTitle', 'required')) {
+          <mat-error>Pinyin title is required.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+    <div>
+      <mat-form-field class="title-field">
+        <mat-label>English title translation</mat-label>
+        <input matInput formControlName="titleTranslation" />
+        @if (hasFieldError('titleTranslation', 'required')) {
+          <mat-error>English title translation is required.</mat-error>
+        }
+      </mat-form-field>
+    </div>
+    <div>
+      <mat-form-field class="title-field">
+        <mat-label>English title</mat-label>
+        <input matInput formControlName="englishTitle" />
+        @if (hasFieldError('englishTitle', 'required')) {
+          <mat-error>English title is required.</mat-error>
+        }
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="meta-field">
-        <input matInput placeholder="Lyricist" formControlName="lyricist" />
+        <mat-label>Lyricist</mat-label>
+        <input matInput formControlName="lyricist" />
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="meta-field">
-        <input matInput placeholder="Composer" formControlName="composer" />
+        <mat-label>Composer</mat-label>
+        <input matInput formControlName="composer" />
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="meta-field">
-        <input matInput placeholder="Arranger" formControlName="arranger" />
+        <mat-label>Arranger</mat-label>
+        <input matInput formControlName="arranger" />
       </mat-form-field>
     </div>
     <mat-form-field class="input-field" appearance="outline">
@@ -94,6 +124,7 @@
   <div [class.hide]="hideOutput">
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
+      <mat-label>Generated JSON</mat-label>
       <textarea
         matInput
         rows="10"

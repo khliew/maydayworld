@@ -94,4 +94,13 @@ export class AdminService {
   setSong(songId: string, song: Song): Observable<void> {
     return from(setDoc(doc(this.firestore, `songs/${songId}`), JSON.parse(JSON.stringify(song))));
   }
+
+  setSongMetadata(songId: string, songMetadata: SongMetadata): Observable<void> {
+    return from(
+      setDoc(
+        doc(this.firestore, `songMetadatas/${songId}`),
+        JSON.parse(JSON.stringify(songMetadata)),
+      ),
+    );
+  }
 }
