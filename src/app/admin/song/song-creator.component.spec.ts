@@ -36,31 +36,39 @@ describe('SongCreatorComponent', () => {
     fixture.detectChanges();
   });
 
-  it('renders lyrics validation errors and disables normal save', async () => {
+  it('renders lyric row validation errors and disables normal save', async () => {
     comp.songForm.patchValue({
       songId: 'test-song',
       traditionalTitle: '中文',
       pinyinTitle: 'zhong wen',
       titleTranslation: 'Chinese',
       englishTitle: 'English title',
-      lyrics: 'L\n中文\nzhong wen',
     });
+    comp.addLyricRowForm();
     fixture.detectChanges();
     await fixture.whenStable();
 
     const saveButton = getSaveButton();
-    const errorEl: HTMLElement = fixture.nativeElement.querySelector('.lyrics-error');
+    const errorEls: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.row-error'),
+    );
 
-    expect(errorEl.textContent).toContain('Line 1: Lyric block is missing English translation.');
+    expect(
+      errorEls.some(el => el.textContent.includes('Traditional Chinese lyric is required.')),
+    ).toBe(true);
+    expect(errorEls.some(el => el.textContent.includes('Pinyin lyric is required.'))).toBe(true);
+    expect(errorEls.some(el => el.textContent.includes('English translation is required.'))).toBe(
+      true,
+    );
     expect(saveButton.disabled).toBe(true);
 
     comp.save();
 
     expect(adminService.setSong).not.toHaveBeenCalled();
-    expect(comp.response).toBe('Fix lyrics validation errors before saving.');
+    expect(comp.response).toBe('Fix required song fields and lyric rows before saving.');
   });
 
-  it('saves valid lyrics from the normal form path', () => {
+  it('saves valid lyric rows from the normal form path', () => {
     comp.songForm.patchValue({
       songId: 'test-song',
       traditionalTitle: '中文',
@@ -70,7 +78,17 @@ describe('SongCreatorComponent', () => {
       lyricist: 'Lyricist',
       composer: 'Composer',
       arranger: 'Arranger',
-      lyrics: 'L\n中文\nzhong wen\nChinese lyric',
+    });
+    comp.addLyricRowForm();
+    comp.lyricRowsForm.at(0).patchValue({
+      zht: '中文',
+      zhp: 'zhong wen',
+      eng: 'Chinese lyric',
+    });
+    comp.addBreakRowForm();
+    comp.addTextRowForm();
+    comp.lyricRowsForm.at(2).patchValue({
+      text: 'Translator note',
     });
 
     comp.save();
@@ -85,6 +103,13 @@ describe('SongCreatorComponent', () => {
             zht: '中文',
             zhp: 'zhong wen',
             eng: 'Chinese lyric',
+          }),
+          expect.objectContaining({
+            type: 'break',
+          }),
+          expect.objectContaining({
+            type: 'text',
+            text: 'Translator note',
           }),
         ],
       }),
@@ -132,10 +157,10 @@ describe('SongCreatorComponent', () => {
     expect(errorEls.some(el => el.textContent.includes('Pinyin title is required.'))).toBe(true);
     expect(adminService.setSong).not.toHaveBeenCalled();
     expect(adminService.setSongMetadata).not.toHaveBeenCalled();
-    expect(comp.response).toBe('Fix required song fields before saving.');
+    expect(comp.response).toBe('Fix required song fields and lyric rows before saving.');
   });
 
-  it('loads existing title fields and builds matching song metadata', () => {
+  it('loads existing title fields and lyrics, then builds matching song metadata', () => {
     comp.fillForm({
       id: 'existing-song',
       disabled: true,
@@ -150,7 +175,16 @@ describe('SongCreatorComponent', () => {
       lyricist: 'Ashin',
       composer: 'Ashin',
       arranger: 'Mayday',
-      lyrics: [],
+      lyrics: [
+        {
+          type: 'lyric',
+          zht: '我和我最後的倔強',
+          zhp: 'wo he wo zui hou de jue jiang',
+          eng: 'Me and my last stubbornness',
+        },
+        { type: 'break' },
+        { type: 'text', text: 'Translator note' },
+      ],
     });
 
     const song = comp.createFormSong();
@@ -172,6 +206,97 @@ describe('SongCreatorComponent', () => {
       composer: 'Ashin',
       arranger: 'Mayday',
     });
+    expect(comp.lyricRowsForm.length).toBe(3);
+    expect(JSON.parse(JSON.stringify(song.lyrics))).toEqual([
+      {
+        type: 'lyric',
+        zht: '我和我最後的倔強',
+        zhp: 'wo he wo zui hou de jue jiang',
+        eng: 'Me and my last stubbornness',
+      },
+      { type: 'break' },
+      { type: 'text', text: 'Translator note' },
+    ]);
+  });
+
+  it('imports valid raw lyrics into structured rows', () => {
+    comp.lyricsImport.setValue(
+      ['L', '中文', 'zhong wen', 'Chinese lyric', '', 'B', '', 'T', 'Translator note'].join('\n'),
+    );
+
+    comp.importLyricsFromRaw();
+    const song = comp.createFormSong();
+
+    expect(comp.lyricRowsForm.length).toBe(3);
+    expect(JSON.parse(JSON.stringify(song.lyrics))).toEqual([
+      {
+        type: 'lyric',
+        zht: '中文',
+        zhp: 'zhong wen',
+        eng: 'Chinese lyric',
+      },
+      { type: 'break' },
+      { type: 'text', text: 'Translator note' },
+    ]);
+    expect(comp.response).toBe('Imported 3 lyric rows.');
+  });
+
+  it('keeps existing rows when raw lyrics import has parser diagnostics', () => {
+    comp.addBreakRowForm();
+    comp.lyricsImport.setValue(['L', '中文', 'zhong wen'].join('\n'));
+
+    comp.importLyricsFromRaw();
+
+    expect(comp.lyricRowsForm.length).toBe(1);
+    expect(comp.getLyricRowType(0)).toBe('break');
+    expect(comp.lyricsDiagnostics).toEqual([
+      {
+        lineNumber: 1,
+        message: 'Lyric block is missing English translation.',
+      },
+    ]);
+    expect(comp.response).toBe('Fix import validation errors before importing lyrics.');
+  });
+
+  it('duplicates, reorders, and deletes lyric rows', () => {
+    comp.fillForm({
+      id: 'existing-song',
+      title: {
+        chinese: {
+          zht: '倔強',
+          zhp: 'jue jiang',
+          eng: 'Stubborn',
+        },
+        english: 'Stubborn',
+      },
+      lyricist: '',
+      composer: '',
+      arranger: '',
+      lyrics: [
+        {
+          type: 'lyric',
+          zht: '中文',
+          zhp: 'zhong wen',
+          eng: 'Chinese lyric',
+        },
+        { type: 'text', text: 'Translator note' },
+      ],
+    });
+
+    comp.duplicateLyricRowForm(0);
+    comp.moveLyricRowForm(2, -1);
+    comp.removeLyricRowForm(0);
+
+    const song = comp.createFormSong();
+    expect(JSON.parse(JSON.stringify(song.lyrics))).toEqual([
+      { type: 'text', text: 'Translator note' },
+      {
+        type: 'lyric',
+        zht: '中文',
+        zhp: 'zhong wen',
+        eng: 'Chinese lyric',
+      },
+    ]);
   });
 
   it('reports song write failures without writing metadata', () => {

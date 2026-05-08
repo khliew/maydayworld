@@ -1,15 +1,16 @@
 import { Component, inject, OnInit } from '@angular/core';
 import {
   AbstractControl,
+  FormArray,
   FormBuilder,
   ReactiveFormsModule,
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
-import { MatCard } from '@angular/material/card';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
@@ -27,6 +28,47 @@ function trimmedRequired(control: AbstractControl): ValidationErrors | null {
   return value.trim().length > 0 ? null : { required: true };
 }
 
+type LyricRowType = 'lyric' | 'break' | 'text';
+
+interface LyricRowValue {
+  type: LyricRowType;
+  zht: string;
+  zhp: string;
+  eng: string;
+  text: string;
+}
+
+function hasTrimmedValue(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function lyricRowValidator(control: AbstractControl): ValidationErrors | null {
+  const type = control.get('type')?.value;
+  const errors: ValidationErrors = {};
+
+  if (type === 'lyric') {
+    if (!hasTrimmedValue(control.get('zht')?.value)) {
+      errors.zhtRequired = true;
+    }
+
+    if (!hasTrimmedValue(control.get('zhp')?.value)) {
+      errors.zhpRequired = true;
+    }
+
+    if (!hasTrimmedValue(control.get('eng')?.value)) {
+      errors.engRequired = true;
+    }
+  } else if (type === 'text') {
+    if (!hasTrimmedValue(control.get('text')?.value)) {
+      errors.textRequired = true;
+    }
+  } else if (type !== 'break') {
+    errors.typeRequired = true;
+  }
+
+  return Object.keys(errors).length > 0 ? errors : null;
+}
+
 @Component({
   selector: 'app-song-creator',
   templateUrl: './song-creator.component.html',
@@ -41,8 +83,9 @@ function trimmedRequired(control: AbstractControl): ValidationErrors | null {
     MatTooltip,
     MatLabel,
     MatButton,
-    MatCard,
     MatError,
+    MatIconButton,
+    MatIcon,
   ],
 })
 export class SongCreatorComponent implements OnInit {
@@ -50,6 +93,7 @@ export class SongCreatorComponent implements OnInit {
   private adminService = inject(AdminService);
 
   search = this.fb.control('');
+  lyricRowsForm: FormArray = this.fb.array([]);
   songForm = this.fb.group({
     songId: ['', trimmedRequired],
     disabled: [false],
@@ -60,14 +104,16 @@ export class SongCreatorComponent implements OnInit {
     lyricist: [''],
     composer: [''],
     arranger: [''],
-    lyrics: [''],
+    lyricRows: this.lyricRowsForm,
   });
+  lyricsImport = this.fb.control('');
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
 
-  songMds: SongMetadata[];
+  songMds: SongMetadata[] = [];
   lyricsParser: LyricsParser;
   lyricsParseResult: LyricsParseResult;
+  showLyricsImport: boolean;
   hideOutput: boolean;
   output: Song;
   response: string;
@@ -77,6 +123,7 @@ export class SongCreatorComponent implements OnInit {
   constructor() {
     this.lyricsParser = new LyricsParser();
     this.lyricsParseResult = { lines: [], diagnostics: [] };
+    this.showLyricsImport = false;
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';
@@ -85,7 +132,7 @@ export class SongCreatorComponent implements OnInit {
       this.searchSong(value);
     });
 
-    this.songForm.get('lyrics').valueChanges.subscribe(value => {
+    this.lyricsImport.valueChanges.subscribe(value => {
       this.validateLyrics(value);
     });
   }
@@ -105,9 +152,11 @@ export class SongCreatorComponent implements OnInit {
     if (enabled) {
       this.search.enable({ emitEvent: false });
       this.songForm.enable();
+      this.lyricsImport.enable({ emitEvent: false });
     } else {
       this.search.disable({ emitEvent: false });
       this.songForm.disable();
+      this.lyricsImport.disable({ emitEvent: false });
     }
   }
 
@@ -146,30 +195,20 @@ export class SongCreatorComponent implements OnInit {
     this.songForm.get('composer').setValue(song.composer);
     this.songForm.get('arranger').setValue(song.arranger);
 
-    if (song.lyrics) {
-      const lyrics = song.lyrics
-        .map(line => {
-          switch (line.type) {
-            case 'lyric': {
-              return `L\n${line.zht}\n${line.zhp}\n${line.eng}\n`;
-            }
-            case 'break': {
-              return 'B\n\n';
-            }
-            case 'text': {
-              return `T\n${line.text}\n`;
-            }
-          }
-        })
-        .join('\n');
-      this.songForm.get('lyrics').setValue(lyrics);
-    }
+    this.setLyricRows(song.lyrics || []);
+    this.lyricsImport.setValue(this.formatLinesAsControlTokens(song.lyrics || []), {
+      emitEvent: false,
+    });
+    this.validateLyrics();
   }
 
   clear() {
     this.search.reset('', { emitEvent: false });
-    this.songForm.reset();
-    this.validateLyrics();
+    this.songForm.reset({ disabled: false });
+    this.setLyricRows([]);
+    this.lyricsImport.reset('', { emitEvent: false });
+    this.validateLyrics('');
+    this.showLyricsImport = false;
     this.response = '';
     this.searchError = '';
 
@@ -195,7 +234,7 @@ export class SongCreatorComponent implements OnInit {
       this.songForm.get('englishTitle').value,
     );
 
-    song.lyrics = this.parseLyrics(this.songForm.get('lyrics').value);
+    song.lyrics = this.createLyricsFromRows();
     return song;
   }
 
@@ -211,7 +250,6 @@ export class SongCreatorComponent implements OnInit {
   }
 
   generateJson() {
-    this.validateLyrics();
     this.output = this.createFormSong();
 
     this.hideOutput = false;
@@ -236,7 +274,7 @@ export class SongCreatorComponent implements OnInit {
     return this.lyricsParser.parse(lyrics);
   }
 
-  validateLyrics(lyrics: string = this.songForm.get('lyrics').value): LyricsParseResult {
+  validateLyrics(lyrics: string = this.lyricsImport.value): LyricsParseResult {
     this.lyricsParseResult = this.lyricsParser.parseWithDiagnostics(lyrics || '');
     return this.lyricsParseResult;
   }
@@ -246,7 +284,7 @@ export class SongCreatorComponent implements OnInit {
   }
 
   hasLyricsValidationErrors(): boolean {
-    return this.lyricsDiagnostics.length > 0;
+    return this.lyricRowsForm.invalid;
   }
 
   hasFieldError(controlName: string, errorName: string): boolean {
@@ -271,13 +309,7 @@ export class SongCreatorComponent implements OnInit {
       this.songForm.markAllAsTouched();
 
       if (this.hasFormValidationErrors()) {
-        this.response = 'Fix required song fields before saving.';
-        return;
-      }
-
-      const lyricsResult = this.validateLyrics();
-      if (lyricsResult.diagnostics.length > 0) {
-        this.response = 'Fix lyrics validation errors before saving.';
+        this.response = 'Fix required song fields and lyric rows before saving.';
         return;
       }
 
@@ -321,8 +353,211 @@ export class SongCreatorComponent implements OnInit {
       );
   }
 
+  addLyricRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'lyric',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  addTextRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'text',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  addBreakRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'break',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  duplicateLyricRowForm(index: number) {
+    const row = this.lyricRowsForm.at(index);
+    if (!row) {
+      return;
+    }
+
+    this.insertLyricRow(index + 1, row.getRawValue() as LyricRowValue);
+  }
+
+  removeLyricRowForm(index: number) {
+    if (index < 0 || index >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    this.lyricRowsForm.removeAt(index);
+    this.markLyricsRowsChanged();
+  }
+
+  moveLyricRowForm(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || index >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    if (nextIndex >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    const row = this.lyricRowsForm.at(index);
+    this.lyricRowsForm.removeAt(index);
+    this.lyricRowsForm.insert(nextIndex, row);
+    this.markLyricsRowsChanged();
+  }
+
+  getLyricRowType(index: number): LyricRowType {
+    const type = this.lyricRowsForm.at(index)?.get('type')?.value;
+    if (type === 'break' || type === 'text') {
+      return type;
+    }
+
+    return 'lyric';
+  }
+
+  getLyricRowErrors(index: number): string[] {
+    const row = this.lyricRowsForm.at(index);
+    if (!row || !row.errors) {
+      return [];
+    }
+
+    const errors = row.errors;
+    const messages: string[] = [];
+
+    if (errors.typeRequired) {
+      messages.push('Row type is required.');
+    }
+
+    if (errors.zhtRequired) {
+      messages.push('Traditional Chinese lyric is required.');
+    }
+
+    if (errors.zhpRequired) {
+      messages.push('Pinyin lyric is required.');
+    }
+
+    if (errors.engRequired) {
+      messages.push('English translation is required.');
+    }
+
+    if (errors.textRequired) {
+      messages.push('Text row content is required.');
+    }
+
+    return messages;
+  }
+
+  toggleLyricsImport() {
+    this.showLyricsImport = !this.showLyricsImport;
+  }
+
+  importLyricsFromRaw() {
+    const result = this.validateLyrics();
+    if (result.diagnostics.length > 0) {
+      this.response = 'Fix import validation errors before importing lyrics.';
+      return;
+    }
+
+    this.setLyricRows(result.lines);
+    this.lyricRowsForm.markAsDirty();
+    this.songForm.markAsDirty();
+    this.response = `Imported ${result.lines.length} lyric row${
+      result.lines.length === 1 ? '' : 's'
+    }.`;
+    this.showLyricsImport = false;
+  }
+
   private trimFormValue(controlName: string): string {
     return (this.songForm.get(controlName).value || '').trim();
+  }
+
+  private insertLyricRow(index: number, row: LyricRowValue) {
+    this.lyricRowsForm.insert(index, this.createLyricRowForm(row));
+    this.markLyricsRowsChanged();
+  }
+
+  private createLyricRowForm(row: LyricRowValue) {
+    return this.fb.group(
+      {
+        type: [row.type],
+        zht: [row.zht],
+        zhp: [row.zhp],
+        eng: [row.eng],
+        text: [row.text],
+      },
+      { validators: lyricRowValidator },
+    );
+  }
+
+  private setLyricRows(lines: Line[]) {
+    this.lyricRowsForm.clear();
+    lines.forEach(line => {
+      this.lyricRowsForm.push(this.createLyricRowForm(this.createLyricRowValue(line)));
+    });
+    this.lyricRowsForm.updateValueAndValidity();
+    this.lyricRowsForm.markAsPristine();
+  }
+
+  private createLyricRowValue(line: Line): LyricRowValue {
+    return {
+      type: line.type || 'lyric',
+      zht: line.type === 'lyric' ? line.zht || '' : '',
+      zhp: line.type === 'lyric' ? line.zhp || '' : '',
+      eng: line.type === 'lyric' ? line.eng || '' : '',
+      text: line.type === 'text' ? line.text || '' : '',
+    };
+  }
+
+  private createLyricsFromRows(): Line[] {
+    return this.lyricRowsForm.controls.map(row => {
+      return this.createLineFromRowValue(row.getRawValue() as LyricRowValue);
+    });
+  }
+
+  private createLineFromRowValue(row: LyricRowValue): Line {
+    const line = new Line();
+    line.type = row.type;
+
+    if (row.type === 'lyric') {
+      line.zht = row.zht || '';
+      line.zhp = row.zhp || '';
+      line.eng = row.eng || '';
+    } else if (row.type === 'text') {
+      line.text = row.text || '';
+    }
+
+    return line;
+  }
+
+  private formatLinesAsControlTokens(lines: Line[]): string {
+    return lines
+      .map(line => {
+        switch (line.type) {
+          case 'lyric':
+            return ['L', line.zht || '', line.zhp || '', line.eng || ''].join('\n');
+          case 'break':
+            return 'B';
+          case 'text':
+            return ['T', line.text || ''].join('\n');
+        }
+      })
+      .join('\n\n');
+  }
+
+  private markLyricsRowsChanged() {
+    this.lyricRowsForm.markAsDirty();
+    this.lyricRowsForm.updateValueAndValidity();
   }
 
   private upsertSongMetadata(metadata: SongMetadata) {

@@ -81,20 +81,182 @@
         <input matInput formControlName="arranger" />
       </mat-form-field>
     </div>
-    <mat-form-field class="input-field" appearance="outline">
-      <mat-label>Lyrics</mat-label>
-      <textarea matInput rows="10" formControlName="lyrics"></textarea>
-    </mat-form-field>
-    @if (lyricsDiagnostics.length > 0) {
-      <div class="lyrics-errors" aria-live="polite">
-        @for (diagnostic of lyricsDiagnostics; track $index) {
-          <div class="lyrics-error">Line {{ diagnostic.lineNumber }}: {{ diagnostic.message }}</div>
+    <section class="lyrics-editor">
+      <div class="lyrics-header">
+        <h3>Lyrics</h3>
+        <button
+          mat-button
+          type="button"
+          class="import-toggle"
+          (click)="toggleLyricsImport()"
+          [disabled]="songForm.disabled"
+        >
+          <mat-icon>{{ showLyricsImport ? 'expand_less' : 'upload_file' }}</mat-icon>
+          Raw import
+        </button>
+      </div>
+      <div class="lyrics-toolbar">
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="addLyricRowForm()"
+          [disabled]="songForm.disabled"
+        >
+          <mat-icon>add</mat-icon>
+          Lyric
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="addTextRowForm()"
+          [disabled]="songForm.disabled"
+        >
+          <mat-icon>notes</mat-icon>
+          Text
+        </button>
+        <button
+          mat-flat-button
+          color="primary"
+          type="button"
+          (click)="addBreakRowForm()"
+          [disabled]="songForm.disabled"
+        >
+          <mat-icon>horizontal_rule</mat-icon>
+          Break
+        </button>
+      </div>
+      @if (showLyricsImport) {
+        <div class="lyrics-import">
+          <mat-form-field class="input-field" appearance="outline">
+            <mat-label>Raw lyrics import</mat-label>
+            <textarea matInput rows="10" [formControl]="lyricsImport"></textarea>
+          </mat-form-field>
+          @if (lyricsDiagnostics.length > 0) {
+            <div class="lyrics-errors" aria-live="polite">
+              @for (diagnostic of lyricsDiagnostics; track $index) {
+                <div class="lyrics-error">
+                  Line {{ diagnostic.lineNumber }}: {{ diagnostic.message }}
+                </div>
+              }
+            </div>
+          }
+          <button
+            mat-flat-button
+            color="accent"
+            type="button"
+            class="import-button"
+            (click)="importLyricsFromRaw()"
+            [disabled]="lyricsImport.disabled || lyricsDiagnostics.length > 0"
+          >
+            <mat-icon>publish</mat-icon>
+            Import into rows
+          </button>
+        </div>
+      }
+      <div formArrayName="lyricRows" class="lyrics-rows">
+        @if (lyricRowsForm.length === 0) {
+          <div class="empty-lyrics">No lyric rows.</div>
+        }
+        @for (row of lyricRowsForm.controls; track row; let i = $index) {
+          <div class="lyric-row" [formGroupName]="i">
+            <div class="row-header">
+              <span class="row-index">{{ i + 1 }}</span>
+              <mat-form-field class="row-type">
+                <mat-label>Type</mat-label>
+                <mat-select formControlName="type">
+                  <mat-option value="lyric">Lyric</mat-option>
+                  <mat-option value="text">Text</mat-option>
+                  <mat-option value="break">Break</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <div class="row-controls">
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Move up"
+                  aria-label="Move row up"
+                  (click)="moveLyricRowForm(i, -1)"
+                  [disabled]="songForm.disabled || i === 0"
+                >
+                  <mat-icon>arrow_upward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Move down"
+                  aria-label="Move row down"
+                  (click)="moveLyricRowForm(i, 1)"
+                  [disabled]="songForm.disabled || i === lyricRowsForm.length - 1"
+                >
+                  <mat-icon>arrow_downward</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Duplicate"
+                  aria-label="Duplicate row"
+                  (click)="duplicateLyricRowForm(i)"
+                  [disabled]="songForm.disabled"
+                >
+                  <mat-icon>content_copy</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  type="button"
+                  matTooltip="Delete"
+                  aria-label="Delete row"
+                  (click)="removeLyricRowForm(i)"
+                  [disabled]="songForm.disabled"
+                >
+                  <mat-icon>delete</mat-icon>
+                </button>
+              </div>
+            </div>
+            @switch (getLyricRowType(i)) {
+              @case ('lyric') {
+                <div class="lyric-fields">
+                  <mat-form-field class="line-field">
+                    <mat-label>Traditional Chinese</mat-label>
+                    <input matInput formControlName="zht" />
+                  </mat-form-field>
+                  <mat-form-field class="line-field">
+                    <mat-label>Pinyin</mat-label>
+                    <input matInput formControlName="zhp" />
+                  </mat-form-field>
+                  <mat-form-field class="line-field">
+                    <mat-label>English translation</mat-label>
+                    <input matInput formControlName="eng" />
+                  </mat-form-field>
+                </div>
+              }
+              @case ('text') {
+                <mat-form-field class="text-row-field">
+                  <mat-label>Text</mat-label>
+                  <input matInput formControlName="text" />
+                </mat-form-field>
+              }
+              @case ('break') {
+                <div class="break-row-label">Paragraph break</div>
+              }
+            }
+            @if (getLyricRowErrors(i).length > 0) {
+              <div class="row-errors" aria-live="polite">
+                @for (error of getLyricRowErrors(i); track error) {
+                  <div class="row-error">{{ error }}</div>
+                }
+              </div>
+            }
+          </div>
         }
       </div>
-    }
+    </section>
     <button
       mat-flat-button
       color="accent"
+      type="button"
       class="action-button"
       (click)="save()"
       [disabled]="!canSave()"
@@ -104,6 +266,7 @@
     <button
       mat-flat-button
       color="primary"
+      type="button"
       class="action-button"
       (click)="generateJson()"
       [disabled]="songForm.disabled"
@@ -113,6 +276,7 @@
     <button
       mat-flat-button
       color="primary"
+      type="button"
       class="action-button"
       (click)="clear()"
       [disabled]="songForm.disabled"
@@ -133,28 +297,4 @@
       ></textarea>
     </mat-form-field>
   </div>
-  <mat-card class="helper">
-    <p>
-      <strong>L</strong> - translated song lyric<br />
-      <strong>B</strong> - paragraph break<br />
-      <strong>T</strong> - text
-    </p>
-    <p>Blank lines before control letters are optional.</p>
-    <b>Example:</b>
-    <p class="example">
-      L<br />
-      然後呢<br />
-      rán hòu ne<br />
-      And then?<br />
-      <br />
-      B<br />
-      <br />
-      L<br />
-      他們說你的心<br />
-      tā men shuō nǐ de xīn<br />
-      They said that your heart<br />
-      T<br />
-      Note: "好好" can mean "very good"
-    </p>
-  </mat-card>
 </div>

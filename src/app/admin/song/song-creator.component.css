@@ -1,6 +1,6 @@
 .content {
   padding: 32px;
-  max-width: 720px;
+  max-width: 960px;
 }
 .search-field {
   min-width: 96px;
@@ -25,13 +25,103 @@
   margin-top: 8px;
   margin-bottom: 16px;
   width: 100%;
-  height: 196px;
 }
 .lyrics-errors {
   color: #b00020;
   font-size: 13px;
   line-height: 18px;
   margin: -8px 0 8px;
+}
+.lyrics-editor {
+  margin-top: 8px;
+  max-width: 880px;
+}
+.lyrics-header,
+.lyrics-toolbar,
+.row-header,
+.row-controls {
+  align-items: center;
+  display: flex;
+}
+.lyrics-header {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.lyrics-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+.lyrics-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.lyrics-toolbar button,
+.import-toggle,
+.import-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.lyrics-import {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.lyrics-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.empty-lyrics {
+  border: 1px dashed rgba(0, 0, 0, 0.26);
+  border-radius: 6px;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 16px;
+}
+.lyric-row {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 12px;
+}
+.row-header {
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.row-index {
+  color: rgba(0, 0, 0, 0.6);
+  flex: 0 0 32px;
+  font-size: 13px;
+  text-align: right;
+}
+.row-type {
+  flex: 0 0 140px;
+}
+.row-controls {
+  gap: 4px;
+  margin-left: auto;
+}
+.lyric-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.line-field,
+.text-row-field {
+  width: 100%;
+}
+.break-row-label {
+  color: rgba(0, 0, 0, 0.64);
+  padding: 8px 0 12px 44px;
+}
+.row-errors {
+  color: #b00020;
+  font-size: 13px;
+  line-height: 18px;
+  margin-left: 44px;
 }
 .action-button {
   margin-bottom: 16px;
@@ -49,18 +139,34 @@
 .response {
   margin-top: 16px;
 }
-.helper {
-  position: fixed;
-  width: 196px;
-  top: 64px;
-  left: 756px;
-  margin: 32px 0 0 16px;
-  background-color: white;
-  font-size: 12px;
-  line-height: 14px;
-}
-.example {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 5px;
-  padding: 4px;
+@media (max-width: 760px) {
+  .lyrics-header,
+  .row-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .row-index {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .row-type {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .row-controls {
+    margin-left: 0;
+  }
+
+  .lyric-fields {
+    grid-template-columns: 1fr;
+  }
+
+  .break-row-label,
+  .row-errors {
+    margin-left: 0;
+    padding-left: 0;
+  }
 }
