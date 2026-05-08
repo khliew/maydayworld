@@ -8,7 +8,7 @@ import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
 import { Line, Song, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
-import { LyricsParser } from './lyrics-parser';
+import { LyricsParseDiagnostic, LyricsParseResult, LyricsParser } from './lyrics-parser';
 
 @Component({
   selector: 'app-song-creator',
@@ -47,6 +47,7 @@ export class SongCreatorComponent implements OnInit {
 
   songMds: SongMetadata[];
   lyricsParser: LyricsParser;
+  lyricsParseResult: LyricsParseResult;
   hideOutput: boolean;
   output: Song;
   response: string;
@@ -55,12 +56,17 @@ export class SongCreatorComponent implements OnInit {
 
   constructor() {
     this.lyricsParser = new LyricsParser();
+    this.lyricsParseResult = { lines: [], diagnostics: [] };
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';
 
     this.search.valueChanges.subscribe(value => {
       this.searchSong(value);
+    });
+
+    this.songForm.get('lyrics').valueChanges.subscribe(value => {
+      this.validateLyrics(value);
     });
   }
 
@@ -143,6 +149,7 @@ export class SongCreatorComponent implements OnInit {
   clear() {
     this.search.reset('', { emitEvent: false });
     this.songForm.reset();
+    this.validateLyrics();
     this.response = '';
     this.searchError = '';
 
@@ -171,6 +178,7 @@ export class SongCreatorComponent implements OnInit {
   }
 
   generateJson() {
+    this.validateLyrics();
     this.output = this.createFormSong();
 
     this.hideOutput = false;
@@ -199,8 +207,31 @@ export class SongCreatorComponent implements OnInit {
     return this.lyricsParser.parse(lyrics);
   }
 
+  validateLyrics(lyrics: string = this.songForm.get('lyrics').value): LyricsParseResult {
+    this.lyricsParseResult = this.lyricsParser.parseWithDiagnostics(lyrics || '');
+    return this.lyricsParseResult;
+  }
+
+  get lyricsDiagnostics(): LyricsParseDiagnostic[] {
+    return this.lyricsParseResult.diagnostics;
+  }
+
+  hasLyricsValidationErrors(): boolean {
+    return this.lyricsDiagnostics.length > 0;
+  }
+
+  canSave(): boolean {
+    return !this.songForm.disabled && (!this.readonly.value || !this.hasLyricsValidationErrors());
+  }
+
   save() {
     if (this.readonly.value) {
+      const lyricsResult = this.validateLyrics();
+      if (lyricsResult.diagnostics.length > 0) {
+        this.response = 'Fix lyrics validation errors before saving.';
+        return;
+      }
+
       this.output = this.createFormSong();
     } else {
       this.output = JSON.parse(this.outputForm.value);

@@ -27,6 +27,12 @@
   width: 100%;
   height: 196px;
 }
+.lyrics-errors {
+  color: #b00020;
+  font-size: 13px;
+  line-height: 18px;
+  margin: -8px 0 8px;
+}
 .action-button {
   margin-bottom: 16px;
   margin-top: 16px;

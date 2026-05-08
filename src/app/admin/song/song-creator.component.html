@@ -55,12 +55,19 @@
       <mat-label>Lyrics</mat-label>
       <textarea matInput rows="10" formControlName="lyrics"></textarea>
     </mat-form-field>
+    @if (lyricsDiagnostics.length > 0) {
+      <div class="lyrics-errors" aria-live="polite">
+        @for (diagnostic of lyricsDiagnostics; track $index) {
+          <div class="lyrics-error">Line {{ diagnostic.lineNumber }}: {{ diagnostic.message }}</div>
+        }
+      </div>
+    }
     <button
       mat-flat-button
       color="accent"
       class="action-button"
       (click)="save()"
-      [disabled]="songForm.disabled"
+      [disabled]="!canSave()"
     >
       Save
     </button>
