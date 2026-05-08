@@ -39,7 +39,12 @@
 .lyrics-header,
 .lyrics-toolbar,
 .row-header,
-.row-controls {
+.row-controls,
+.lyrics-header-actions,
+.import-options,
+.import-dialog-header,
+.import-dialog-actions,
+.preview-row {
   align-items: center;
   display: flex;
 }
@@ -51,6 +56,11 @@
   font-size: 18px;
   font-weight: 500;
   margin: 0;
+}
+.lyrics-header-actions,
+.import-dialog-actions {
+  flex-wrap: wrap;
+  gap: 8px;
 }
 .lyrics-toolbar {
   flex-wrap: wrap;
@@ -69,6 +79,91 @@
   border-radius: 6px;
   margin-bottom: 16px;
   padding: 16px;
+}
+.import-dialog-backdrop {
+  align-items: flex-start;
+  background: rgba(0, 0, 0, 0.42);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  overflow: auto;
+  padding: 48px 16px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1000;
+}
+.import-dialog {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  max-width: 880px;
+  padding: 20px;
+  width: min(880px, 100%);
+}
+.import-dialog-header {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.import-dialog-header h4,
+.import-preview h5 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+.import-options {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.import-option-field {
+  min-width: 208px;
+}
+.import-detected-format {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  margin: -8px 0 12px;
+}
+.import-preview {
+  margin-top: 16px;
+}
+.import-preview h5 {
+  margin-bottom: 8px;
+}
+.preview-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  gap: 12px;
+  padding: 10px 0;
+}
+.preview-index {
+  color: rgba(0, 0, 0, 0.6);
+  flex: 0 0 32px;
+  font-size: 13px;
+  text-align: right;
+}
+.preview-lyric {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.preview-lyric span,
+.preview-text,
+.preview-break {
+  overflow-wrap: anywhere;
+}
+.preview-text,
+.preview-break {
+  flex: 1;
+}
+.preview-break {
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+}
+.import-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
 }
 .lyrics-rows {
   display: flex;
@@ -141,7 +236,10 @@
 }
 @media (max-width: 760px) {
   .lyrics-header,
-  .row-header {
+  .row-header,
+  .lyrics-header-actions,
+  .import-options,
+  .preview-row {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -156,12 +254,23 @@
     width: 100%;
   }
 
+  .import-option-field,
+  .preview-lyric {
+    width: 100%;
+  }
+
   .row-controls {
     margin-left: 0;
   }
 
-  .lyric-fields {
+  .lyric-fields,
+  .preview-lyric {
     grid-template-columns: 1fr;
+  }
+
+  .preview-index {
+    flex-basis: auto;
+    text-align: left;
   }
 
   .break-row-label,

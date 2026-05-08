@@ -84,16 +84,28 @@
     <section class="lyrics-editor">
       <div class="lyrics-header">
         <h3>Lyrics</h3>
-        <button
-          mat-button
-          type="button"
-          class="import-toggle"
-          (click)="toggleLyricsImport()"
-          [disabled]="songForm.disabled"
-        >
-          <mat-icon>{{ showLyricsImport ? 'expand_less' : 'upload_file' }}</mat-icon>
-          Raw import
-        </button>
+        <div class="lyrics-header-actions">
+          <button
+            mat-button
+            type="button"
+            class="import-toggle"
+            (click)="openSpreadsheetImportDialog()"
+            [disabled]="songForm.disabled"
+          >
+            <mat-icon>upload_file</mat-icon>
+            Paste/import
+          </button>
+          <button
+            mat-button
+            type="button"
+            class="import-toggle"
+            (click)="toggleLyricsImport()"
+            [disabled]="songForm.disabled"
+          >
+            <mat-icon>{{ showLyricsImport ? 'expand_less' : 'code' }}</mat-icon>
+            Raw import
+          </button>
+        </div>
       </div>
       <div class="lyrics-toolbar">
         <button
@@ -153,6 +165,111 @@
             <mat-icon>publish</mat-icon>
             Import into rows
           </button>
+        </div>
+      }
+      @if (showSpreadsheetImport) {
+        <div class="import-dialog-backdrop">
+          <section
+            class="import-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="spreadsheet-import-title"
+          >
+            <div class="import-dialog-header">
+              <h4 id="spreadsheet-import-title">Paste/import lyrics</h4>
+              <button
+                mat-icon-button
+                type="button"
+                matTooltip="Close"
+                aria-label="Close import dialog"
+                (click)="closeSpreadsheetImportDialog()"
+              >
+                <mat-icon>close</mat-icon>
+              </button>
+            </div>
+            <div class="import-options">
+              <mat-form-field class="import-option-field">
+                <mat-label>Import mode</mat-label>
+                <mat-select [formControl]="spreadsheetImportMode">
+                  <mat-option value="three-column">Three-column lyrics</mat-option>
+                  <mat-option value="structured">Structured rows</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-form-field class="import-option-field">
+                <mat-label>Format</mat-label>
+                <mat-select [formControl]="spreadsheetImportDelimiter">
+                  <mat-option value="auto">Auto-detect</mat-option>
+                  <mat-option value="tab">TSV</mat-option>
+                  <mat-option value="comma">CSV</mat-option>
+                </mat-select>
+              </mat-form-field>
+              <mat-checkbox [formControl]="blankSpreadsheetRowsAsBreaks">
+                Blank rows become breaks
+              </mat-checkbox>
+            </div>
+            <mat-form-field class="input-field" appearance="outline">
+              <mat-label>Paste spreadsheet or CSV rows</mat-label>
+              <textarea matInput rows="10" [formControl]="spreadsheetImport"></textarea>
+            </mat-form-field>
+            <div class="import-detected-format">
+              Previewing as {{ spreadsheetImportFormatLabel() }}
+            </div>
+            @if (spreadsheetImportDiagnostics.length > 0) {
+              <div class="lyrics-errors" aria-live="polite">
+                @for (diagnostic of spreadsheetImportDiagnostics; track $index) {
+                  <div class="lyrics-error">
+                    Row {{ diagnostic.rowNumber }}
+                    @if (diagnostic.field) {
+                      <span>, {{ diagnostic.field }}</span>
+                    }
+                    : {{ diagnostic.message }}
+                  </div>
+                }
+              </div>
+            }
+            <div class="import-preview">
+              <h5>Preview</h5>
+              @if (spreadsheetImportPreviewRows.length === 0) {
+                <div class="empty-lyrics">No rows to import.</div>
+              }
+              @for (line of spreadsheetImportPreviewRows; track $index; let i = $index) {
+                <div class="preview-row">
+                  <span class="preview-index">{{ i + 1 }}</span>
+                  @switch (line.type) {
+                    @case ('lyric') {
+                      <div class="preview-lyric">
+                        <span>{{ line.zht }}</span>
+                        <span>{{ line.zhp }}</span>
+                        <span>{{ line.eng }}</span>
+                      </div>
+                    }
+                    @case ('text') {
+                      <div class="preview-text">{{ line.text }}</div>
+                    }
+                    @case ('break') {
+                      <div class="preview-break">Paragraph break</div>
+                    }
+                  }
+                </div>
+              }
+            </div>
+            <div class="import-dialog-actions">
+              <button mat-button type="button" (click)="closeSpreadsheetImportDialog()">
+                <mat-icon>close</mat-icon>
+                Cancel
+              </button>
+              <button
+                mat-flat-button
+                color="accent"
+                type="button"
+                (click)="applySpreadsheetImport()"
+                [disabled]="!canApplySpreadsheetImport()"
+              >
+                <mat-icon>publish</mat-icon>
+                Apply import
+              </button>
+            </div>
+          </section>
         </div>
       }
       <div formArrayName="lyricRows" class="lyrics-rows">

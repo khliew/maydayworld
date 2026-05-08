@@ -17,6 +17,13 @@ import { MatTooltip } from '@angular/material/tooltip';
 import { catchError, concatMap, throwError } from 'rxjs';
 import { Line, Song, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
+import {
+  LyricsImportDelimiter,
+  LyricsImportDiagnostic,
+  LyricsImporter,
+  LyricsImportMode,
+  LyricsImportResult,
+} from './lyrics-importer';
 import { LyricsParseDiagnostic, LyricsParseResult, LyricsParser } from './lyrics-parser';
 
 function trimmedRequired(control: AbstractControl): ValidationErrors | null {
@@ -107,13 +114,20 @@ export class SongCreatorComponent implements OnInit {
     lyricRows: this.lyricRowsForm,
   });
   lyricsImport = this.fb.control('');
+  spreadsheetImport = this.fb.control('');
+  spreadsheetImportMode = this.fb.control<LyricsImportMode>('three-column');
+  spreadsheetImportDelimiter = this.fb.control<LyricsImportDelimiter>('auto');
+  blankSpreadsheetRowsAsBreaks = this.fb.control(true);
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
 
   songMds: SongMetadata[] = [];
   lyricsParser: LyricsParser;
+  lyricsImporter: LyricsImporter;
   lyricsParseResult: LyricsParseResult;
+  spreadsheetImportResult: LyricsImportResult;
   showLyricsImport: boolean;
+  showSpreadsheetImport: boolean;
   hideOutput: boolean;
   output: Song;
   response: string;
@@ -122,8 +136,11 @@ export class SongCreatorComponent implements OnInit {
 
   constructor() {
     this.lyricsParser = new LyricsParser();
+    this.lyricsImporter = new LyricsImporter();
     this.lyricsParseResult = { lines: [], diagnostics: [] };
+    this.spreadsheetImportResult = { lines: [], diagnostics: [], delimiter: 'tab' };
     this.showLyricsImport = false;
+    this.showSpreadsheetImport = false;
     this.hideOutput = true;
     this.response = '';
     this.searchError = '';
@@ -134,6 +151,22 @@ export class SongCreatorComponent implements OnInit {
 
     this.lyricsImport.valueChanges.subscribe(value => {
       this.validateLyrics(value);
+    });
+
+    this.spreadsheetImport.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.spreadsheetImportMode.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.spreadsheetImportDelimiter.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.blankSpreadsheetRowsAsBreaks.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
     });
   }
 
@@ -153,10 +186,18 @@ export class SongCreatorComponent implements OnInit {
       this.search.enable({ emitEvent: false });
       this.songForm.enable();
       this.lyricsImport.enable({ emitEvent: false });
+      this.spreadsheetImport.enable({ emitEvent: false });
+      this.spreadsheetImportMode.enable({ emitEvent: false });
+      this.spreadsheetImportDelimiter.enable({ emitEvent: false });
+      this.blankSpreadsheetRowsAsBreaks.enable({ emitEvent: false });
     } else {
       this.search.disable({ emitEvent: false });
       this.songForm.disable();
       this.lyricsImport.disable({ emitEvent: false });
+      this.spreadsheetImport.disable({ emitEvent: false });
+      this.spreadsheetImportMode.disable({ emitEvent: false });
+      this.spreadsheetImportDelimiter.disable({ emitEvent: false });
+      this.blankSpreadsheetRowsAsBreaks.disable({ emitEvent: false });
     }
   }
 
@@ -209,6 +250,12 @@ export class SongCreatorComponent implements OnInit {
     this.lyricsImport.reset('', { emitEvent: false });
     this.validateLyrics('');
     this.showLyricsImport = false;
+    this.spreadsheetImport.reset('', { emitEvent: false });
+    this.spreadsheetImportMode.setValue('three-column', { emitEvent: false });
+    this.spreadsheetImportDelimiter.setValue('auto', { emitEvent: false });
+    this.blankSpreadsheetRowsAsBreaks.setValue(true, { emitEvent: false });
+    this.spreadsheetImportResult = { lines: [], diagnostics: [], delimiter: 'tab' };
+    this.showSpreadsheetImport = false;
     this.response = '';
     this.searchError = '';
 
@@ -281,6 +328,14 @@ export class SongCreatorComponent implements OnInit {
 
   get lyricsDiagnostics(): LyricsParseDiagnostic[] {
     return this.lyricsParseResult.diagnostics;
+  }
+
+  get spreadsheetImportDiagnostics(): LyricsImportDiagnostic[] {
+    return this.spreadsheetImportResult.diagnostics;
+  }
+
+  get spreadsheetImportPreviewRows(): Line[] {
+    return this.spreadsheetImportResult.lines;
   }
 
   hasLyricsValidationErrors(): boolean {
@@ -460,6 +515,58 @@ export class SongCreatorComponent implements OnInit {
 
   toggleLyricsImport() {
     this.showLyricsImport = !this.showLyricsImport;
+  }
+
+  openSpreadsheetImportDialog() {
+    this.showSpreadsheetImport = true;
+    this.response = '';
+    this.previewSpreadsheetImport();
+  }
+
+  closeSpreadsheetImportDialog() {
+    this.showSpreadsheetImport = false;
+  }
+
+  previewSpreadsheetImport(): LyricsImportResult {
+    this.spreadsheetImportResult = this.lyricsImporter.parse(this.spreadsheetImport.value || '', {
+      mode: this.spreadsheetImportMode.value || 'three-column',
+      delimiter: this.spreadsheetImportDelimiter.value || 'auto',
+      blankRowsAsBreaks: !!this.blankSpreadsheetRowsAsBreaks.value,
+    });
+
+    return this.spreadsheetImportResult;
+  }
+
+  canApplySpreadsheetImport(): boolean {
+    return (
+      !this.songForm.disabled &&
+      this.spreadsheetImportDiagnostics.length === 0 &&
+      this.spreadsheetImportPreviewRows.length > 0
+    );
+  }
+
+  applySpreadsheetImport() {
+    const result = this.previewSpreadsheetImport();
+
+    if (result.diagnostics.length > 0) {
+      this.response = 'Fix spreadsheet import errors before applying rows.';
+      return;
+    }
+
+    if (result.lines.length === 0) {
+      this.response = 'Paste rows before applying import.';
+      return;
+    }
+
+    this.setLyricRows(result.lines);
+    this.lyricRowsForm.markAsDirty();
+    this.songForm.markAsDirty();
+    this.response = `Imported ${result.lines.length} lyric row${result.lines.length === 1 ? '' : 's'}.`;
+    this.showSpreadsheetImport = false;
+  }
+
+  spreadsheetImportFormatLabel(): string {
+    return this.spreadsheetImportResult.delimiter === 'tab' ? 'TSV' : 'CSV';
   }
 
   importLyricsFromRaw() {

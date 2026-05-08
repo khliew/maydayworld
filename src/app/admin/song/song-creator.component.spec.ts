@@ -258,6 +258,54 @@ describe('SongCreatorComponent', () => {
     expect(comp.response).toBe('Fix import validation errors before importing lyrics.');
   });
 
+  it('previews spreadsheet import without changing existing rows until apply', () => {
+    comp.addBreakRowForm();
+    comp.spreadsheetImport.setValue('中文\tzhong wen\tChinese lyric');
+
+    expect(comp.spreadsheetImportDiagnostics).toEqual([]);
+    expect(JSON.parse(JSON.stringify(comp.spreadsheetImportPreviewRows))).toEqual([
+      {
+        type: 'lyric',
+        zht: '中文',
+        zhp: 'zhong wen',
+        eng: 'Chinese lyric',
+      },
+    ]);
+    expect(comp.lyricRowsForm.length).toBe(1);
+    expect(comp.getLyricRowType(0)).toBe('break');
+
+    comp.applySpreadsheetImport();
+
+    expect(comp.lyricRowsForm.length).toBe(1);
+    expect(JSON.parse(JSON.stringify(comp.createFormSong().lyrics))).toEqual([
+      {
+        type: 'lyric',
+        zht: '中文',
+        zhp: 'zhong wen',
+        eng: 'Chinese lyric',
+      },
+    ]);
+    expect(comp.response).toBe('Imported 1 lyric row.');
+  });
+
+  it('keeps existing rows when spreadsheet import has row errors', () => {
+    comp.addBreakRowForm();
+    comp.spreadsheetImport.setValue('中文,,Chinese lyric');
+
+    comp.applySpreadsheetImport();
+
+    expect(comp.lyricRowsForm.length).toBe(1);
+    expect(comp.getLyricRowType(0)).toBe('break');
+    expect(comp.spreadsheetImportDiagnostics).toEqual([
+      {
+        rowNumber: 1,
+        field: 'zhp',
+        message: 'zhp is required.',
+      },
+    ]);
+    expect(comp.response).toBe('Fix spreadsheet import errors before applying rows.');
+  });
+
   it('duplicates, reorders, and deletes lyric rows', () => {
     comp.fillForm({
       id: 'existing-song',
