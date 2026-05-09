@@ -347,6 +347,162 @@ describe('SongCreatorComponent', () => {
     ]);
   });
 
+  it('renders a live public-style preview and highlights the selected editor row', async () => {
+    comp.songForm.patchValue({
+      songId: 'test-song',
+      traditionalTitle: '倔強',
+      pinyinTitle: 'jue jiang',
+      titleTranslation: 'Stubborn',
+      englishTitle: 'Stubborn',
+      lyricist: 'Ashin',
+      composer: 'Ashin',
+      arranger: 'Mayday',
+    });
+    comp.addLyricRowForm();
+    comp.lyricRowsForm.at(0).patchValue({
+      zht: '我和我最後的倔強',
+      zhp: 'wo he wo zui hou de jue jiang',
+      eng: 'Me and my last stubbornness',
+    });
+    comp.addTextRowForm();
+    comp.lyricRowsForm.at(1).patchValue({
+      text: 'Translator note',
+    });
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    const previewPanel: HTMLElement = fixture.nativeElement.querySelector('.preview-panel');
+    expect(previewPanel.textContent).toContain('倔強');
+    expect(previewPanel.textContent).toContain('jue jiang');
+    expect(previewPanel.textContent).toContain('Stubborn');
+    expect(previewPanel.textContent).toContain('Lyricist: Ashin');
+    expect(previewPanel.textContent).toContain('Composer: Ashin');
+    expect(previewPanel.textContent).toContain('Arrangement by: Mayday');
+    expect(previewPanel.textContent).toContain('我和我最後的倔強');
+    expect(previewPanel.textContent).toContain('wo he wo zui hou de jue jiang');
+    expect(previewPanel.textContent).toContain('Me and my last stubbornness');
+    expect(previewPanel.textContent).toContain('Translator note');
+
+    const previewButtons: HTMLButtonElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.preview-line-button'),
+    );
+    previewButtons[1].click();
+    fixture.detectChanges();
+
+    const editorRows: HTMLElement[] = Array.from(
+      fixture.nativeElement.querySelectorAll('.lyric-row'),
+    );
+    expect(editorRows[1].classList.contains('lyric-row-preview-active')).toBe(true);
+    expect(editorRows[0].classList.contains('lyric-row-preview-active')).toBe(false);
+  });
+
+  it('keeps generated JSON read-only by default and updates it from form edits', () => {
+    comp.songForm.patchValue({
+      songId: 'test-song',
+      traditionalTitle: '中文',
+      pinyinTitle: 'zhong wen',
+      titleTranslation: 'Chinese',
+      englishTitle: 'English title',
+    });
+    comp.generateJson();
+
+    expect(comp.readonly.value).toBe(true);
+    expect(JSON.parse(comp.outputForm.value)).toMatchObject({
+      id: 'test-song',
+      title: {
+        english: 'English title',
+      },
+    });
+
+    comp.songForm.get('englishTitle').setValue('Updated English title');
+
+    expect(JSON.parse(comp.outputForm.value)).toMatchObject({
+      title: {
+        english: 'Updated English title',
+      },
+    });
+  });
+
+  it('blocks advanced JSON saves when the edited song object is invalid', async () => {
+    comp.generateJson();
+    comp.readonly.setValue(false);
+    comp.outputForm.setValue(
+      JSON.stringify({
+        id: 'json-song',
+        title: {
+          chinese: {
+            zht: '中文',
+            zhp: 'zhong wen',
+            eng: 'Chinese',
+          },
+          english: 'English title',
+        },
+        lyrics: [
+          {
+            type: 'lyric',
+            zht: '中文',
+            zhp: '',
+            eng: 'Chinese lyric',
+          },
+        ],
+      }),
+    );
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    expect(comp.jsonValidationErrors).toContain('Lyric row 1 pinyin is required.');
+    expect(getSaveButton().disabled).toBe(true);
+
+    comp.save();
+
+    expect(adminService.setSong).not.toHaveBeenCalled();
+    expect(adminService.setSongMetadata).not.toHaveBeenCalled();
+    expect(comp.response).toBe('Fix advanced JSON errors before saving.');
+  });
+
+  it('saves valid advanced JSON edits and writes matching metadata', () => {
+    const editedSong = {
+      id: 'json-song',
+      disabled: false,
+      title: {
+        chinese: {
+          zht: '中文',
+          zhp: 'zhong wen',
+          eng: 'Chinese',
+        },
+        english: 'English title',
+      },
+      lyricist: 'Lyricist',
+      composer: 'Composer',
+      arranger: 'Arranger',
+      lyrics: [
+        {
+          type: 'text',
+          text: 'JSON note',
+        },
+      ],
+    };
+
+    comp.generateJson();
+    comp.readonly.setValue(false);
+    comp.outputForm.setValue(JSON.stringify(editedSong));
+
+    comp.save();
+
+    expect(adminService.setSong).toHaveBeenCalledWith('json-song', editedSong);
+    expect(adminService.setSongMetadata).toHaveBeenCalledWith(
+      'json-song',
+      expect.objectContaining({
+        id: 'json-song',
+        title: editedSong.title,
+        lyricist: 'Lyricist',
+        composer: 'Composer',
+        arranger: 'Arranger',
+      }),
+    );
+    expect(comp.response).toBe('Song and metadata saved!');
+  });
+
   it('reports song write failures without writing metadata', () => {
     adminService.setSong.mockReturnValue(throwError(() => new Error('permission denied')));
     comp.songForm.patchValue({

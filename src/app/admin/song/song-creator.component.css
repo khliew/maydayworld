@@ -1,6 +1,15 @@
 .content {
   padding: 32px;
-  max-width: 960px;
+  max-width: 1280px;
+}
+.editor-layout {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 880px) minmax(320px, 1fr);
+}
+.editor-form {
+  min-width: 0;
 }
 .search-field {
   min-width: 96px;
@@ -26,7 +35,8 @@
   margin-bottom: 16px;
   width: 100%;
 }
-.lyrics-errors {
+.lyrics-errors,
+.json-errors {
   color: #b00020;
   font-size: 13px;
   line-height: 18px;
@@ -181,6 +191,11 @@
   border-radius: 6px;
   padding: 12px;
 }
+.lyric-row-preview-active {
+  background: #f5fbff;
+  border-color: #0277bd;
+  box-shadow: 0 0 0 2px rgba(2, 119, 189, 0.16);
+}
 .row-header {
   gap: 12px;
   justify-content: space-between;
@@ -223,6 +238,94 @@
   margin-top: 16px;
   margin-right: 16px;
 }
+.action-button mat-icon {
+  margin-right: 6px;
+}
+.preview-panel {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 20px;
+  position: sticky;
+  top: 16px;
+}
+.preview-panel h3,
+.advanced-json h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+.song-header {
+  margin-bottom: 64px;
+}
+.song-title {
+  margin-bottom: 32px;
+}
+.song-tag {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.title-chinese {
+  font-size: 22px;
+}
+.title-translation {
+  color: gray;
+  padding-top: 4px;
+}
+.trans-pinyin {
+  font-size: 14px;
+  line-height: 16px;
+}
+.trans-english {
+  font-size: 16px;
+  line-height: 18px;
+}
+.title-english {
+  font-size: 22px;
+  margin-top: 16px;
+}
+.song-content {
+  font-size: 18px;
+  line-height: 20px;
+}
+.line {
+  margin-bottom: 16px;
+}
+.line-text {
+  line-height: 22px;
+}
+.lyrics-pinyin {
+  color: gray;
+  font-size: 14px;
+  line-height: 16px;
+}
+.lyrics-english {
+  font-size: 16px;
+}
+.preview-line-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 4px 8px;
+  text-align: left;
+  width: 100%;
+}
+.preview-line-button:focus-visible,
+.preview-line-selected {
+  background: #e1f5fe;
+  border-color: #0277bd;
+  outline: none;
+}
+.empty-preview {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+.advanced-json {
+  max-width: 960px;
+}
 .output {
   width: 100%;
   margin-bottom: 16px;
@@ -235,6 +338,18 @@
   margin-top: 16px;
 }
 @media (max-width: 760px) {
+  .content {
+    padding: 20px;
+  }
+
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-panel {
+    position: static;
+  }
+
   .lyrics-header,
   .row-header,
   .lyrics-header-actions,

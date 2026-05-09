@@ -131,6 +131,9 @@ export class SongCreatorComponent implements OnInit {
   hideOutput: boolean;
   output: Song;
   response: string;
+  jsonValidationErrors: string[];
+  selectedPreviewRowIndex: number | null;
+  focusedPreviewRowIndex: number | null;
 
   searchError: string;
 
@@ -143,6 +146,9 @@ export class SongCreatorComponent implements OnInit {
     this.showSpreadsheetImport = false;
     this.hideOutput = true;
     this.response = '';
+    this.jsonValidationErrors = [];
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
     this.searchError = '';
 
     this.search.valueChanges.subscribe(value => {
@@ -168,6 +174,21 @@ export class SongCreatorComponent implements OnInit {
     this.blankSpreadsheetRowsAsBreaks.valueChanges.subscribe(() => {
       this.previewSpreadsheetImport();
     });
+
+    this.songForm.valueChanges.subscribe(() => {
+      this.syncGeneratedJson();
+    });
+
+    this.outputForm.valueChanges.subscribe(value => {
+      this.validateAdvancedJson(value || '');
+    });
+
+    this.readonly.valueChanges.subscribe(() => {
+      this.syncGeneratedJson();
+      this.validateAdvancedJson();
+    });
+
+    this.syncGeneratedJson();
   }
 
   ngOnInit() {
@@ -258,10 +279,13 @@ export class SongCreatorComponent implements OnInit {
     this.showSpreadsheetImport = false;
     this.response = '';
     this.searchError = '';
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
 
     this.hideOutput = true;
     this.readonly.setValue(true);
     this.outputForm.setValue('');
+    this.jsonValidationErrors = [];
   }
 
   createFormSong() {
@@ -297,12 +321,11 @@ export class SongCreatorComponent implements OnInit {
   }
 
   generateJson() {
-    this.output = this.createFormSong();
+    this.syncGeneratedJson(true);
 
     this.hideOutput = false;
     this.response = '';
     this.searchError = '';
-    this.outputForm.setValue(JSON.stringify(this.output, null, 2));
   }
 
   parseTitle(zht: string, zhp: string, eng: string, english: string): Title {
@@ -352,11 +375,15 @@ export class SongCreatorComponent implements OnInit {
   }
 
   canSave(): boolean {
-    return (
-      !this.songForm.disabled &&
-      (!this.readonly.value ||
-        (!this.hasFormValidationErrors() && !this.hasLyricsValidationErrors()))
-    );
+    if (this.songForm.disabled) {
+      return false;
+    }
+
+    if (!this.readonly.value) {
+      return this.jsonValidationErrors.length === 0 && hasTrimmedValue(this.outputForm.value);
+    }
+
+    return !this.hasFormValidationErrors() && !this.hasLyricsValidationErrors();
   }
 
   save() {
@@ -370,12 +397,14 @@ export class SongCreatorComponent implements OnInit {
 
       this.output = this.createFormSong();
     } else {
-      try {
-        this.output = JSON.parse(this.outputForm.value);
-      } catch (err) {
-        this.response = `JSON parse failed: ${this.formatError(err)}`;
+      const result = this.validateAdvancedJson();
+
+      if (result.errors.length > 0) {
+        this.response = 'Fix advanced JSON errors before saving.';
         return;
       }
+
+      this.output = result.song;
     }
 
     this.response = '';
@@ -479,6 +508,28 @@ export class SongCreatorComponent implements OnInit {
     }
 
     return 'lyric';
+  }
+
+  get previewSong(): Song {
+    return this.createFormSong();
+  }
+
+  selectPreviewRow(index: number) {
+    this.selectedPreviewRowIndex = index;
+  }
+
+  focusPreviewRow(index: number) {
+    this.focusedPreviewRowIndex = index;
+  }
+
+  blurPreviewRow(index: number) {
+    if (this.focusedPreviewRowIndex === index) {
+      this.focusedPreviewRowIndex = null;
+    }
+  }
+
+  isLyricRowHighlighted(index: number): boolean {
+    return this.selectedPreviewRowIndex === index || this.focusedPreviewRowIndex === index;
   }
 
   getLyricRowErrors(index: number): string[] {
@@ -585,6 +636,15 @@ export class SongCreatorComponent implements OnInit {
     this.showLyricsImport = false;
   }
 
+  validateAdvancedJson(value: string = this.outputForm.value || ''): {
+    song: Song | null;
+    errors: string[];
+  } {
+    const result = this.parseAdvancedJson(value);
+    this.jsonValidationErrors = result.errors;
+    return result;
+  }
+
   private trimFormValue(controlName: string): string {
     return (this.songForm.get(controlName).value || '').trim();
   }
@@ -614,6 +674,9 @@ export class SongCreatorComponent implements OnInit {
     });
     this.lyricRowsForm.updateValueAndValidity();
     this.lyricRowsForm.markAsPristine();
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
+    this.syncGeneratedJson();
   }
 
   private createLyricRowValue(line: Line): LyricRowValue {
@@ -665,6 +728,146 @@ export class SongCreatorComponent implements OnInit {
   private markLyricsRowsChanged() {
     this.lyricRowsForm.markAsDirty();
     this.lyricRowsForm.updateValueAndValidity();
+    this.clearPreviewRowStateIfOutOfRange();
+    this.syncGeneratedJson();
+  }
+
+  private syncGeneratedJson(force: boolean = false) {
+    if (!force && !this.readonly.value) {
+      return;
+    }
+
+    this.output = this.createFormSong();
+    this.outputForm.setValue(JSON.stringify(this.output, null, 2), {
+      emitEvent: false,
+    });
+
+    if (this.readonly.value) {
+      this.jsonValidationErrors = [];
+    } else {
+      this.validateAdvancedJson();
+    }
+  }
+
+  private parseAdvancedJson(value: string): { song: Song | null; errors: string[] } {
+    if (!hasTrimmedValue(value)) {
+      return { song: null, errors: ['JSON is required.'] };
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(value);
+    } catch (err) {
+      return { song: null, errors: [`JSON parse failed: ${this.formatError(err)}`] };
+    }
+
+    const errors = this.validateSongObject(parsed);
+    return {
+      song: errors.length > 0 ? null : this.normalizeParsedSong(parsed),
+      errors,
+    };
+  }
+
+  private validateSongObject(value: any): string[] {
+    const errors: string[] = [];
+
+    if (!this.isPlainObject(value)) {
+      return ['JSON must be a song object.'];
+    }
+
+    this.requireTrimmedString(value, 'id', 'Song ID', errors);
+
+    if (value.disabled !== undefined && typeof value.disabled !== 'boolean') {
+      errors.push('Disabled must be a boolean when provided.');
+    }
+
+    if (!this.isPlainObject(value.title)) {
+      errors.push('Title must be an object.');
+    } else {
+      if (!this.isPlainObject(value.title.chinese)) {
+        errors.push('Chinese title must be an object.');
+      } else {
+        this.requireTrimmedString(value.title.chinese, 'zht', 'Traditional Chinese title', errors);
+        this.requireTrimmedString(value.title.chinese, 'zhp', 'Pinyin title', errors);
+        this.requireTrimmedString(value.title.chinese, 'eng', 'English title translation', errors);
+      }
+
+      this.requireTrimmedString(value.title, 'english', 'English title', errors);
+    }
+
+    this.requireStringWhenPresent(value, 'lyricist', 'Lyricist', errors);
+    this.requireStringWhenPresent(value, 'composer', 'Composer', errors);
+    this.requireStringWhenPresent(value, 'arranger', 'Arranger', errors);
+
+    if (!Array.isArray(value.lyrics)) {
+      errors.push('Lyrics must be an array.');
+    } else {
+      value.lyrics.forEach((line: any, index: number) => {
+        this.validateLineObject(line, index, errors);
+      });
+    }
+
+    return errors;
+  }
+
+  private validateLineObject(line: any, index: number, errors: string[]) {
+    const rowLabel = `Lyric row ${index + 1}`;
+
+    if (!this.isPlainObject(line)) {
+      errors.push(`${rowLabel} must be an object.`);
+      return;
+    }
+
+    if (line.type === 'lyric') {
+      this.requireTrimmedString(line, 'zht', `${rowLabel} Traditional Chinese`, errors);
+      this.requireTrimmedString(line, 'zhp', `${rowLabel} pinyin`, errors);
+      this.requireTrimmedString(line, 'eng', `${rowLabel} English translation`, errors);
+    } else if (line.type === 'text') {
+      this.requireTrimmedString(line, 'text', `${rowLabel} text`, errors);
+    } else if (line.type !== 'break') {
+      errors.push(`${rowLabel} has an unsupported type.`);
+    }
+  }
+
+  private normalizeParsedSong(value: any): Song {
+    const song = value as Song;
+    song.lyricist = typeof song.lyricist === 'string' ? song.lyricist : '';
+    song.composer = typeof song.composer === 'string' ? song.composer : '';
+    song.arranger = typeof song.arranger === 'string' ? song.arranger : '';
+    song.disabled = typeof song.disabled === 'boolean' ? song.disabled : false;
+    return song;
+  }
+
+  private requireTrimmedString(value: any, key: string, label: string, errors: string[]) {
+    if (typeof value?.[key] !== 'string' || value[key].trim().length === 0) {
+      errors.push(`${label} is required.`);
+    }
+  }
+
+  private requireStringWhenPresent(value: any, key: string, label: string, errors: string[]) {
+    if (value[key] !== undefined && typeof value[key] !== 'string') {
+      errors.push(`${label} must be a string when provided.`);
+    }
+  }
+
+  private isPlainObject(value: any): boolean {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private clearPreviewRowStateIfOutOfRange() {
+    if (
+      this.selectedPreviewRowIndex !== null &&
+      this.selectedPreviewRowIndex >= this.lyricRowsForm.length
+    ) {
+      this.selectedPreviewRowIndex = null;
+    }
+
+    if (
+      this.focusedPreviewRowIndex !== null &&
+      this.focusedPreviewRowIndex >= this.lyricRowsForm.length
+    ) {
+      this.focusedPreviewRowIndex = null;
+    }
   }
 
   private upsertSongMetadata(metadata: SongMetadata) {
