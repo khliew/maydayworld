@@ -46,7 +46,12 @@ describe('LyricsParser', () => {
         message: 'Lyric block is missing English translation.',
       },
     ]);
-    expect(result.lines[0].eng).toBe('');
+    const line = result.lines[0];
+    expect(line.type).toBe('lyric');
+    if (line.type !== 'lyric') {
+      throw new Error('Expected a lyric line.');
+    }
+    expect(line.eng).toBe('');
   });
 
   it('reports text blocks with missing note text', () => {

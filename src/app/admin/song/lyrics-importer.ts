@@ -1,4 +1,4 @@
-import { Line } from '../../model';
+import { createBreakLine, createLyricLine, createTextLine, Line } from '../../model';
 
 export type LyricsImportMode = 'structured' | 'three-column';
 export type LyricsImportDelimiter = 'auto' | 'tab' | 'comma';
@@ -278,10 +278,7 @@ export class LyricsImporter {
       return null;
     }
 
-    const line = new Line();
-    line.type = 'text';
-    line.text = rowValue.text;
-    return line;
+    return createTextLine(rowValue.text);
   }
 
   private requireField(
@@ -300,18 +297,11 @@ export class LyricsImporter {
   }
 
   private createLyric(zht: string, zhp: string, eng: string): Line {
-    const line = new Line();
-    line.type = 'lyric';
-    line.zht = zht;
-    line.zhp = zhp;
-    line.eng = eng;
-    return line;
+    return createLyricLine(zht, zhp, eng);
   }
 
   private createBreak(): Line {
-    const line = new Line();
-    line.type = 'break';
-    return line;
+    return createBreakLine();
   }
 
   private parseDelimitedRows(

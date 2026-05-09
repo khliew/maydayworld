@@ -15,7 +15,15 @@ import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
 import { catchError, concatMap, throwError } from 'rxjs';
-import { Line, Song, SongMetadata, Title } from '../../model';
+import {
+  createBreakLine,
+  createLyricLine,
+  createTextLine,
+  Line,
+  Song,
+  SongMetadata,
+  Title,
+} from '../../model';
 import { AdminService } from '../admin.service';
 import {
   LyricsImportDelimiter,
@@ -696,18 +704,14 @@ export class SongCreatorComponent implements OnInit {
   }
 
   private createLineFromRowValue(row: LyricRowValue): Line {
-    const line = new Line();
-    line.type = row.type;
-
-    if (row.type === 'lyric') {
-      line.zht = row.zht || '';
-      line.zhp = row.zhp || '';
-      line.eng = row.eng || '';
-    } else if (row.type === 'text') {
-      line.text = row.text || '';
+    switch (row.type) {
+      case 'lyric':
+        return createLyricLine(row.zht || '', row.zhp || '', row.eng || '');
+      case 'text':
+        return createTextLine(row.text || '');
+      case 'break':
+        return createBreakLine();
     }
-
-    return line;
   }
 
   private formatLinesAsControlTokens(lines: Line[]): string {

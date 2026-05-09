@@ -1,4 +1,4 @@
-import { Line } from '../../model';
+import { createBreakLine, createLyricLine, createTextLine, Line } from '../../model';
 
 export interface LyricsParseDiagnostic {
   lineNumber: number;
@@ -72,9 +72,6 @@ export class LyricsParser {
     startIndex: number,
     diagnostics: LyricsParseDiagnostic[],
   ): { line: Line; nextIndex: number } {
-    const line = new Line();
-    line.type = 'lyric';
-
     const zht = this.readRequiredField(
       tokens,
       startIndex,
@@ -82,10 +79,8 @@ export class LyricsParser {
       'Traditional Chinese lyric',
       diagnostics,
     );
-    line.zht = zht.value;
 
     const zhp = this.readRequiredField(tokens, startIndex, zht.nextIndex, 'pinyin', diagnostics);
-    line.zhp = zhp.value;
 
     const eng = this.readRequiredField(
       tokens,
@@ -94,10 +89,9 @@ export class LyricsParser {
       'English translation',
       diagnostics,
     );
-    line.eng = eng.value;
 
     return {
-      line,
+      line: createLyricLine(zht.value, zhp.value, eng.value),
       nextIndex: eng.nextIndex,
     };
   }
@@ -138,9 +132,7 @@ export class LyricsParser {
   }
 
   private createBreak(): Line {
-    const line = new Line();
-    line.type = 'break';
-    return line;
+    return createBreakLine();
   }
 
   private createText(
@@ -148,8 +140,6 @@ export class LyricsParser {
     startIndex: number,
     diagnostics: LyricsParseDiagnostic[],
   ): { line: Line; nextIndex: number } {
-    const line = new Line();
-    line.type = 'text';
     const fieldIndex = startIndex + 1;
     const token = tokens[fieldIndex];
 
@@ -158,8 +148,7 @@ export class LyricsParser {
         lineNumber: startIndex + 1,
         message: 'Text block is missing note text.',
       });
-      line.text = '';
-      return { line, nextIndex: fieldIndex };
+      return { line: createTextLine(''), nextIndex: fieldIndex };
     }
 
     if (this.isControlToken(token)) {
@@ -167,8 +156,7 @@ export class LyricsParser {
         lineNumber: fieldIndex + 1,
         message: 'Text block is missing note text.',
       });
-      line.text = '';
-      return { line, nextIndex: fieldIndex };
+      return { line: createTextLine(''), nextIndex: fieldIndex };
     }
 
     if (this.isBlank(token)) {
@@ -176,12 +164,10 @@ export class LyricsParser {
         lineNumber: fieldIndex + 1,
         message: 'Text block is missing note text.',
       });
-      line.text = '';
-      return { line, nextIndex: fieldIndex + 1 };
+      return { line: createTextLine(''), nextIndex: fieldIndex + 1 };
     }
 
-    line.text = token.trimEnd();
-    return { line, nextIndex: fieldIndex + 1 };
+    return { line: createTextLine(token.trimEnd()), nextIndex: fieldIndex + 1 };
   }
 
   private normalizeLineEndings(lyrics: string): string {
