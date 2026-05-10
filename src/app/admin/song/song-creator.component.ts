@@ -14,6 +14,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { catchError, concatMap, throwError } from 'rxjs';
 import {
   createBreakLine,
@@ -101,6 +102,7 @@ function lyricRowValidator(control: AbstractControl): ValidationErrors | null {
     MatError,
     MatIconButton,
     MatIcon,
+    RouterLink,
   ],
 })
 export class SongCreatorComponent implements OnInit {

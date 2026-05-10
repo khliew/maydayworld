@@ -2,6 +2,9 @@
   padding: 32px;
   max-width: 720px;
 }
+.admin-back-link {
+  margin-bottom: 8px;
+}
 .title-field {
   min-width: 96px;
   max-width: 480px;

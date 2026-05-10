@@ -2,6 +2,9 @@
   max-width: 720px;
   padding: 32px;
 }
+.admin-back-link {
+  margin-bottom: 8px;
+}
 .search-field {
   min-width: 96px;
   max-width: 480px;

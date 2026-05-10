@@ -1,9 +1,10 @@
 import { AfterViewInit, Component, ElementRef, inject, ViewChild } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { MatIconButton } from '@angular/material/button';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
 import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput } from '@angular/material/input';
+import { RouterLink } from '@angular/router';
 import { Discography } from '../../model';
 import { AdminService } from '../admin.service';
 import { SectionsParser } from './sections-parser';
@@ -12,7 +13,16 @@ import { SectionsParser } from './sections-parser';
   selector: 'app-discography-creator',
   templateUrl: './discography-creator.component.html',
   styleUrls: ['./discography-creator.component.css'],
-  imports: [ReactiveFormsModule, MatFormField, MatInput, MatIconButton, MatIcon, MatCheckbox],
+  imports: [
+    ReactiveFormsModule,
+    MatFormField,
+    MatInput,
+    MatIconButton,
+    MatIcon,
+    MatCheckbox,
+    MatButton,
+    RouterLink,
+  ],
 })
 export class DiscographyCreatorComponent implements AfterViewInit {
   private fb = inject(FormBuilder);
