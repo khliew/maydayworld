@@ -3,20 +3,7 @@
     @for (section of discography.sections; track section.type) {
       @if (!!section.albums && section.albums.length > 0) {
         <h3 mat-subheader class="section-header">
-          @switch (section.type) {
-            @case ('studio') {
-              Studio Albums
-            }
-            @case ('compilation') {
-              Compilations
-            }
-            @case ('ep') {
-              EP
-            }
-            @case ('other') {
-              Other
-            }
-          }
+          {{ albumTypeLabels[section.type] }}
         </h3>
         @for (album of section.albums; track album.id) {
           <a

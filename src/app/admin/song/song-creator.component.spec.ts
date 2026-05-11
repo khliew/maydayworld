@@ -1,5 +1,6 @@
 import { provideZonelessChangeDetection } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AdminService } from '../admin.service';
@@ -27,6 +28,7 @@ describe('SongCreatorComponent', () => {
       imports: [SongCreatorComponent],
       providers: [
         provideZonelessChangeDetection(),
+        provideRouter([]),
         { provide: AdminService, useValue: adminService },
       ],
     }).compileComponents();

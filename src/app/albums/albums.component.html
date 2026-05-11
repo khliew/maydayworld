@@ -4,20 +4,7 @@
       @if (!!section.albums && section.albums.length > 0) {
         <div class="section">
           <h2 class="section-header">
-            @switch (section.type) {
-              @case ('studio') {
-                Studio Albums
-              }
-              @case ('compilation') {
-                Compilations
-              }
-              @case ('ep') {
-                EP
-              }
-              @case ('other') {
-                Other
-              }
-            }
+            {{ albumTypeLabels[section.type] }}
           </h2>
           <mat-nav-list class="album-grid">
             @for (album of section.albums; track album.id) {
