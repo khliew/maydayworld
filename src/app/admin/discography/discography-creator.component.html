@@ -1,19 +1,277 @@
 <div class="content">
+  <a mat-button [routerLink]="['/admin']" class="admin-back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Admin
+  </a>
   <h2>Discography Creator</h2>
-  <form [formGroup]="discoForm">
-    <div>
-      <mat-form-field class="meta-field">
-        <input #artistId matInput placeholder="Artist ID" formControlName="artistId" autofocus />
-      </mat-form-field>
-      <button mat-icon-button (click)="searchDiscography()" [disabled]="searchDisabled">
-        <mat-icon>search</mat-icon>
-      </button>
-      <span class="search-error">{{ this.searchError }}</span>
-    </div>
-  </form>
-  <div [class.hide]="hideOutput">
+  <div class="editor-layout">
+    <form [formGroup]="discoForm" class="editor-form">
+      <div class="editor-toolbar">
+        <mat-form-field class="meta-field">
+          <mat-label>Artist ID</mat-label>
+          <input #artistId matInput formControlName="artistId" autofocus />
+        </mat-form-field>
+        <button
+          mat-icon-button
+          type="button"
+          (click)="searchDiscography()"
+          [disabled]="searchDisabled || discoForm.disabled"
+          matTooltip="Load"
+          aria-label="Load discography"
+        >
+          <mat-icon>search</mat-icon>
+        </button>
+        <button mat-button type="button" (click)="clear()" [disabled]="discoForm.disabled">
+          Clear
+        </button>
+        @if (canRevert()) {
+          <button mat-button type="button" (click)="revert()" [disabled]="discoForm.disabled">
+            Revert
+          </button>
+        }
+        <button
+          mat-flat-button
+          color="accent"
+          type="button"
+          (click)="save()"
+          [disabled]="!canSave()"
+        >
+          Save
+        </button>
+        <div class="editor-status" aria-live="polite">
+          @if (hasUnsavedChanges()) {
+            <span class="dirty-state">Unsaved changes</span>
+          }
+          <span class="search-error">{{ this.searchError }}</span>
+          <span class="response">{{ this.response }}</span>
+        </div>
+      </div>
+      <div class="section-tools">
+        <button
+          mat-button
+          type="button"
+          (click)="toggleSectionsImport()"
+          [disabled]="discoForm.disabled"
+        >
+          <mat-icon>upload_file</mat-icon>
+          Import
+        </button>
+      </div>
+      <section
+        class="sections-import"
+        [class.hide]="!showSectionsImport"
+        [attr.aria-hidden]="!showSectionsImport"
+        aria-label="Paste and import sections"
+      >
+        <mat-form-field class="sections-import-input" appearance="outline">
+          <mat-label>Sections</mat-label>
+          <textarea
+            matInput
+            rows="9"
+            [formControl]="sectionsImport"
+            placeholder="S&#10;studio&#10;album-id-1&#10;album-id-2"
+          ></textarea>
+        </mat-form-field>
+        <div
+          class="import-errors"
+          [class.hide]="sectionsImportDiagnostics.length === 0"
+          aria-live="polite"
+        >
+          @for (diagnostic of sectionsImportDiagnostics; track $index) {
+            <div class="import-error">
+              Line {{ diagnostic.lineNumber }}: {{ diagnostic.message }}
+            </div>
+          }
+        </div>
+        <div class="sections-import-preview">
+          <h4>Preview</h4>
+          <div class="empty-section" [class.hide]="sectionsImportPreviewSections.length > 0">
+            No sections parsed.
+          </div>
+          @for (section of sectionsImportPreviewSections; track $index) {
+            <section class="sections-import-preview-section">
+              <h5>{{ getSectionLabel(section.type) }}</h5>
+              @if (section.albums.length === 0) {
+                <div class="empty-section">No albums.</div>
+              }
+              @for (album of section.albums; track $index) {
+                <div class="sections-import-preview-row" [class.missing]="!album.metadata">
+                  <span class="import-line-number">Line {{ album.lineNumber }}</span>
+                  <span class="album-id">{{ album.id }}</span>
+                  @if (album.metadata; as metadata) {
+                    <span>{{ metadata.title.chinese.zht }}</span>
+                    <span>{{ metadata.title.english }}</span>
+                    <span>{{ metadata.releaseDate }}</span>
+                    @if (metadata.disabled) {
+                      <span class="album-disabled">Disabled</span>
+                    } @else {
+                      <span></span>
+                    }
+                  } @else {
+                    <span class="album-row-missing">Unknown album</span>
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                  }
+                </div>
+              }
+            </section>
+          }
+        </div>
+        <div class="sections-import-actions">
+          <button
+            mat-button
+            type="button"
+            (click)="previewSectionsImport()"
+            [disabled]="sectionsImport.disabled"
+          >
+            <mat-icon>visibility</mat-icon>
+            Preview
+          </button>
+          <button mat-button type="button" (click)="toggleSectionsImport()">
+            <mat-icon>close</mat-icon>
+            Close
+          </button>
+          <button
+            mat-flat-button
+            color="accent"
+            type="button"
+            (click)="applySectionsImport()"
+            [disabled]="!canApplySectionsImport()"
+          >
+            <mat-icon>publish</mat-icon>
+            Apply
+          </button>
+        </div>
+      </section>
+      <div formArrayName="sections" class="sections-editor">
+        @for (section of sectionsForm.controls; track getSectionType(i); let i = $index) {
+          <section class="discography-section" [formGroupName]="i">
+            <div class="section-header">
+              <h3>{{ getSectionLabel(getSectionType(i)) }}</h3>
+              <button
+                mat-button
+                type="button"
+                (click)="addAlbumRow(i)"
+                [disabled]="discoForm.disabled"
+              >
+                <mat-icon>add</mat-icon>
+                Add album
+              </button>
+            </div>
+            <div formArrayName="albumIds" class="album-rows">
+              @if (getSectionAlbumIds(i).length === 0) {
+                <div class="empty-section">No albums.</div>
+              }
+              @if (getSectionAlbumIds(i).length > 0) {
+                <div class="album-row-labels" aria-hidden="true">
+                  <span>Album</span>
+                  <span>Actions</span>
+                </div>
+              }
+              @for (
+                albumIdControl of getSectionAlbumIds(i).controls;
+                track albumIdControl;
+                let j = $index
+              ) {
+                <div class="album-row">
+                  <label class="album-select-field">
+                    <select
+                      [formControlName]="j"
+                      [attr.aria-label]="getSectionLabel(getSectionType(i)) + ' album ' + (j + 1)"
+                    >
+                      <option value="">Select album</option>
+                      @if (albumIdControl.value && !getAlbumMetadata(albumIdControl.value)) {
+                        <option [value]="albumIdControl.value">
+                          Missing: {{ albumIdControl.value }}
+                        </option>
+                      }
+                      @for (albumOption of albums; track albumOption.id) {
+                        <option
+                          [value]="albumOption.id"
+                          [disabled]="isAlbumOptionDisabled(albumOption.id, i, j)"
+                        >
+                          {{ albumOption.title.chinese.zht }} - {{ albumOption.releaseDate }}
+                        </option>
+                      }
+                    </select>
+                  </label>
+                  @if (!getAlbumMetadata(albumIdControl.value)) {
+                    <span class="album-row-missing">
+                      {{ albumIdControl.value ? 'Album not loaded' : '' }}
+                    </span>
+                  }
+                  <div class="album-row-controls">
+                    <button
+                      mat-icon-button
+                      type="button"
+                      matTooltip="Move up"
+                      aria-label="Move album up"
+                      (click)="moveAlbumRow(i, j, -1)"
+                      [disabled]="discoForm.disabled || j === 0"
+                    >
+                      <mat-icon>arrow_upward</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      type="button"
+                      matTooltip="Move down"
+                      aria-label="Move album down"
+                      (click)="moveAlbumRow(i, j, 1)"
+                      [disabled]="discoForm.disabled || j === getSectionAlbumIds(i).length - 1"
+                    >
+                      <mat-icon>arrow_downward</mat-icon>
+                    </button>
+                    <button
+                      mat-icon-button
+                      color="warn"
+                      type="button"
+                      matTooltip="Remove"
+                      aria-label="Remove album"
+                      (click)="removeAlbumRow(i, j)"
+                      [disabled]="discoForm.disabled"
+                    >
+                      <mat-icon>delete</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </section>
+        }
+      </div>
+    </form>
+    <aside class="preview-panel" aria-label="Live discography preview">
+      <h3>Live preview</h3>
+      @if (previewSections.length === 0) {
+        <div class="empty-preview">No albums selected.</div>
+      }
+      @for (section of previewSections; track section.type) {
+        <section class="preview-section">
+          <h4 class="preview-section-header">{{ getSectionLabel(section.type) }}</h4>
+          <div class="preview-album-grid">
+            @for (album of section.albums; track album.id) {
+              <a
+                [routerLink]="album.disabled ? null : ['/album', album.id]"
+                class="preview-album-card"
+                [class.disabled]="album.disabled"
+                [attr.aria-disabled]="album.disabled"
+              >
+                <div class="preview-title-chinese">{{ album.title.chinese.zht }}</div>
+                <div class="preview-title-english">{{ album.title.english }}</div>
+                <div class="preview-release-date">{{ album.releaseDate | date }}</div>
+              </a>
+            }
+          </div>
+        </section>
+      }
+    </aside>
+  </div>
+  <section class="advanced-json">
+    <h3>Advanced JSON</h3>
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
+      <mat-label>JSON</mat-label>
       <textarea
         matInput
         rows="20"
@@ -21,5 +279,23 @@
         [readonly]="readonly.value"
       ></textarea>
     </mat-form-field>
-  </div>
+    @if (!readonly.value && jsonValidationErrors.length > 0) {
+      <div class="json-errors" aria-live="polite">
+        @for (error of jsonValidationErrors; track error) {
+          <div class="json-error">{{ error }}</div>
+        }
+      </div>
+    }
+    @if (!readonly.value) {
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        (click)="applyAdvancedJson()"
+        [disabled]="!canApplyAdvancedJson()"
+      >
+        Apply JSON
+      </button>
+    }
+  </section>
 </div>

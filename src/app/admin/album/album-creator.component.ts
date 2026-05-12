@@ -13,6 +13,7 @@ import { MatIcon } from '@angular/material/icon';
 import { MatFormField, MatInput, MatLabel, MatPrefix, MatSuffix } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
+import { RouterLink } from '@angular/router';
 import { combineLatest, Observable } from 'rxjs';
 import { Album, SongMetadata, Title } from '../../model';
 import { AdminService } from '../admin.service';
@@ -40,6 +41,7 @@ import { AdminService } from '../admin.service';
     MatIconButton,
     MatIcon,
     MatButton,
+    RouterLink,
   ],
 })
 export class AlbumCreatorComponent implements OnInit {

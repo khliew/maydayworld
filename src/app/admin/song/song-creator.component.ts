@@ -1,14 +1,89 @@
 import { Component, inject, OnInit } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule } from '@angular/forms';
-import { MatButton } from '@angular/material/button';
-import { MatCard } from '@angular/material/card';
+import {
+  AbstractControl,
+  FormArray,
+  FormBuilder,
+  ReactiveFormsModule,
+  ValidationErrors,
+  Validators,
+} from '@angular/forms';
+import { MatButton, MatIconButton } from '@angular/material/button';
 import { MatCheckbox } from '@angular/material/checkbox';
-import { MatFormField, MatInput, MatLabel } from '@angular/material/input';
+import { MatError, MatFormField, MatLabel } from '@angular/material/form-field';
+import { MatIcon } from '@angular/material/icon';
+import { MatInput } from '@angular/material/input';
 import { MatOption, MatSelect } from '@angular/material/select';
 import { MatTooltip } from '@angular/material/tooltip';
-import { Line, Song, SongMetadata, Title } from '../../model';
+import { RouterLink } from '@angular/router';
+import { catchError, concatMap, throwError } from 'rxjs';
+import {
+  createBreakLine,
+  createLyricLine,
+  createTextLine,
+  Line,
+  Song,
+  SongMetadata,
+  Title,
+} from '../../model';
 import { AdminService } from '../admin.service';
-import { LyricsParser } from './lyrics-parser';
+import {
+  LyricsImportDelimiter,
+  LyricsImportDiagnostic,
+  LyricsImporter,
+  LyricsImportMode,
+  LyricsImportResult,
+} from './lyrics-importer';
+import { LyricsParseDiagnostic, LyricsParseResult, LyricsParser } from './lyrics-parser';
+
+function trimmedRequired(control: AbstractControl): ValidationErrors | null {
+  const value = control.value;
+  if (typeof value !== 'string') {
+    return Validators.required(control);
+  }
+
+  return value.trim().length > 0 ? null : { required: true };
+}
+
+type LyricRowType = 'lyric' | 'break' | 'text';
+
+interface LyricRowValue {
+  type: LyricRowType;
+  zht: string;
+  zhp: string;
+  eng: string;
+  text: string;
+}
+
+function hasTrimmedValue(value: unknown): boolean {
+  return typeof value === 'string' && value.trim().length > 0;
+}
+
+function lyricRowValidator(control: AbstractControl): ValidationErrors | null {
+  const type = control.get('type')?.value;
+  const errors: ValidationErrors = {};
+
+  if (type === 'lyric') {
+    if (!hasTrimmedValue(control.get('zht')?.value)) {
+      errors.zhtRequired = true;
+    }
+
+    if (!hasTrimmedValue(control.get('zhp')?.value)) {
+      errors.zhpRequired = true;
+    }
+
+    if (!hasTrimmedValue(control.get('eng')?.value)) {
+      errors.engRequired = true;
+    }
+  } else if (type === 'text') {
+    if (!hasTrimmedValue(control.get('text')?.value)) {
+      errors.textRequired = true;
+    }
+  } else if (type !== 'break') {
+    errors.typeRequired = true;
+  }
+
+  return Object.keys(errors).length > 0 ? errors : null;
+}
 
 @Component({
   selector: 'app-song-creator',
@@ -24,7 +99,10 @@ import { LyricsParser } from './lyrics-parser';
     MatTooltip,
     MatLabel,
     MatButton,
-    MatCard,
+    MatError,
+    MatIconButton,
+    MatIcon,
+    RouterLink,
   ],
 })
 export class SongCreatorComponent implements OnInit {
@@ -32,36 +110,95 @@ export class SongCreatorComponent implements OnInit {
   private adminService = inject(AdminService);
 
   search = this.fb.control('');
+  lyricRowsForm: FormArray = this.fb.array([]);
   songForm = this.fb.group({
-    songId: [''],
+    songId: ['', trimmedRequired],
     disabled: [false],
-    chineseTitle: [''],
-    englishTitle: [''],
+    traditionalTitle: ['', trimmedRequired],
+    pinyinTitle: ['', trimmedRequired],
+    titleTranslation: ['', trimmedRequired],
+    englishTitle: ['', trimmedRequired],
     lyricist: [''],
     composer: [''],
     arranger: [''],
-    lyrics: [''],
+    lyricRows: this.lyricRowsForm,
   });
+  lyricsImport = this.fb.control('');
+  spreadsheetImport = this.fb.control('');
+  spreadsheetImportMode = this.fb.control<LyricsImportMode>('three-column');
+  spreadsheetImportDelimiter = this.fb.control<LyricsImportDelimiter>('auto');
+  blankSpreadsheetRowsAsBreaks = this.fb.control(true);
   outputForm = this.fb.control('');
   readonly = this.fb.control(true);
 
-  songMds: SongMetadata[];
+  songMds: SongMetadata[] = [];
   lyricsParser: LyricsParser;
+  lyricsImporter: LyricsImporter;
+  lyricsParseResult: LyricsParseResult;
+  spreadsheetImportResult: LyricsImportResult;
+  showLyricsImport: boolean;
+  showSpreadsheetImport: boolean;
   hideOutput: boolean;
   output: Song;
   response: string;
+  jsonValidationErrors: string[];
+  selectedPreviewRowIndex: number | null;
+  focusedPreviewRowIndex: number | null;
 
   searchError: string;
 
   constructor() {
     this.lyricsParser = new LyricsParser();
+    this.lyricsImporter = new LyricsImporter();
+    this.lyricsParseResult = { lines: [], diagnostics: [] };
+    this.spreadsheetImportResult = { lines: [], diagnostics: [], delimiter: 'tab' };
+    this.showLyricsImport = false;
+    this.showSpreadsheetImport = false;
     this.hideOutput = true;
     this.response = '';
+    this.jsonValidationErrors = [];
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
     this.searchError = '';
 
     this.search.valueChanges.subscribe(value => {
       this.searchSong(value);
     });
+
+    this.lyricsImport.valueChanges.subscribe(value => {
+      this.validateLyrics(value);
+    });
+
+    this.spreadsheetImport.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.spreadsheetImportMode.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.spreadsheetImportDelimiter.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.blankSpreadsheetRowsAsBreaks.valueChanges.subscribe(() => {
+      this.previewSpreadsheetImport();
+    });
+
+    this.songForm.valueChanges.subscribe(() => {
+      this.syncGeneratedJson();
+    });
+
+    this.outputForm.valueChanges.subscribe(value => {
+      this.validateAdvancedJson(value || '');
+    });
+
+    this.readonly.valueChanges.subscribe(() => {
+      this.syncGeneratedJson();
+      this.validateAdvancedJson();
+    });
+
+    this.syncGeneratedJson();
   }
 
   ngOnInit() {
@@ -79,9 +216,19 @@ export class SongCreatorComponent implements OnInit {
     if (enabled) {
       this.search.enable({ emitEvent: false });
       this.songForm.enable();
+      this.lyricsImport.enable({ emitEvent: false });
+      this.spreadsheetImport.enable({ emitEvent: false });
+      this.spreadsheetImportMode.enable({ emitEvent: false });
+      this.spreadsheetImportDelimiter.enable({ emitEvent: false });
+      this.blankSpreadsheetRowsAsBreaks.enable({ emitEvent: false });
     } else {
       this.search.disable({ emitEvent: false });
       this.songForm.disable();
+      this.lyricsImport.disable({ emitEvent: false });
+      this.spreadsheetImport.disable({ emitEvent: false });
+      this.spreadsheetImportMode.disable({ emitEvent: false });
+      this.spreadsheetImportDelimiter.disable({ emitEvent: false });
+      this.blankSpreadsheetRowsAsBreaks.disable({ emitEvent: false });
     }
   }
 
@@ -111,86 +258,94 @@ export class SongCreatorComponent implements OnInit {
       .setValue(typeof song.disabled !== 'undefined' ? song.disabled : false);
 
     const title = song.title;
-    this.songForm
-      .get('chineseTitle')
-      .setValue(`${title.chinese.zht}\n${title.chinese.zhp}\n${title.chinese.eng}`);
-    this.songForm.get('englishTitle').setValue(title.english);
+    this.songForm.get('traditionalTitle').setValue(title.chinese?.zht || '');
+    this.songForm.get('pinyinTitle').setValue(title.chinese?.zhp || '');
+    this.songForm.get('titleTranslation').setValue(title.chinese?.eng || '');
+    this.songForm.get('englishTitle').setValue(title.english || '');
 
     this.songForm.get('lyricist').setValue(song.lyricist);
     this.songForm.get('composer').setValue(song.composer);
     this.songForm.get('arranger').setValue(song.arranger);
 
-    if (song.lyrics) {
-      const lyrics = song.lyrics
-        .map(line => {
-          switch (line.type) {
-            case 'lyric': {
-              return `L\n${line.zht}\n${line.zhp}\n${line.eng}\n`;
-            }
-            case 'break': {
-              return 'B\n\n';
-            }
-            case 'text': {
-              return `T\n${line.text}\n`;
-            }
-          }
-        })
-        .join('\n');
-      this.songForm.get('lyrics').setValue(lyrics);
-    }
+    this.setLyricRows(song.lyrics || []);
+    this.lyricsImport.setValue(this.formatLinesAsControlTokens(song.lyrics || []), {
+      emitEvent: false,
+    });
+    this.validateLyrics();
   }
 
   clear() {
     this.search.reset('', { emitEvent: false });
-    this.songForm.reset();
+    this.songForm.reset({ disabled: false });
+    this.setLyricRows([]);
+    this.lyricsImport.reset('', { emitEvent: false });
+    this.validateLyrics('');
+    this.showLyricsImport = false;
+    this.spreadsheetImport.reset('', { emitEvent: false });
+    this.spreadsheetImportMode.setValue('three-column', { emitEvent: false });
+    this.spreadsheetImportDelimiter.setValue('auto', { emitEvent: false });
+    this.blankSpreadsheetRowsAsBreaks.setValue(true, { emitEvent: false });
+    this.spreadsheetImportResult = { lines: [], diagnostics: [], delimiter: 'tab' };
+    this.showSpreadsheetImport = false;
     this.response = '';
     this.searchError = '';
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
 
     this.hideOutput = true;
     this.readonly.setValue(true);
     this.outputForm.setValue('');
+    this.jsonValidationErrors = [];
   }
 
   createFormSong() {
     const song = new Song();
-    song.id = this.songForm.get('songId').value;
+    song.id = this.trimFormValue('songId');
 
     song.disabled = this.songForm.get('disabled').value;
 
-    song.lyricist = this.songForm.get('lyricist').value;
-    song.composer = this.songForm.get('composer').value;
-    song.arranger = this.songForm.get('arranger').value;
+    song.lyricist = this.trimFormValue('lyricist');
+    song.composer = this.trimFormValue('composer');
+    song.arranger = this.trimFormValue('arranger');
 
     song.title = this.parseTitle(
-      this.songForm.get('chineseTitle').value,
+      this.songForm.get('traditionalTitle').value,
+      this.songForm.get('pinyinTitle').value,
+      this.songForm.get('titleTranslation').value,
       this.songForm.get('englishTitle').value,
     );
 
-    song.lyrics = this.parseLyrics(this.songForm.get('lyrics').value);
+    song.lyrics = this.createLyricsFromRows();
     return song;
   }
 
+  createSongMetadata(song: Song): SongMetadata {
+    const metadata = new SongMetadata();
+    metadata.id = song.id;
+    metadata.title = song.title;
+    metadata.lyricist = song.lyricist;
+    metadata.composer = song.composer;
+    metadata.arranger = song.arranger;
+    metadata.disabled = song.disabled;
+    return metadata;
+  }
+
   generateJson() {
-    this.output = this.createFormSong();
+    this.syncGeneratedJson(true);
 
     this.hideOutput = false;
     this.response = '';
     this.searchError = '';
-    this.outputForm.setValue(JSON.stringify(this.output, null, 2));
   }
 
-  parseTitle(chinese: string, english: string): Title {
+  parseTitle(zht: string, zhp: string, eng: string, english: string): Title {
     const title = new Title();
-    title.english = english;
-
-    if (!!chinese) {
-      const parts = chinese.split('\n');
-      title.chinese = {
-        zht: parts[0] && parts[0].trim(),
-        zhp: parts[1] && parts[1].trim(),
-        eng: parts[2] && parts[2].trim(),
-      };
-    }
+    title.english = (english || '').trim();
+    title.chinese = {
+      zht: (zht || '').trim(),
+      zhp: (zhp || '').trim(),
+      eng: (eng || '').trim(),
+    };
 
     return title;
   }
@@ -199,24 +354,548 @@ export class SongCreatorComponent implements OnInit {
     return this.lyricsParser.parse(lyrics);
   }
 
+  validateLyrics(lyrics: string = this.lyricsImport.value): LyricsParseResult {
+    this.lyricsParseResult = this.lyricsParser.parseWithDiagnostics(lyrics || '');
+    return this.lyricsParseResult;
+  }
+
+  get lyricsDiagnostics(): LyricsParseDiagnostic[] {
+    return this.lyricsParseResult.diagnostics;
+  }
+
+  get spreadsheetImportDiagnostics(): LyricsImportDiagnostic[] {
+    return this.spreadsheetImportResult.diagnostics;
+  }
+
+  get spreadsheetImportPreviewRows(): Line[] {
+    return this.spreadsheetImportResult.lines;
+  }
+
+  hasLyricsValidationErrors(): boolean {
+    return this.lyricRowsForm.invalid;
+  }
+
+  hasFieldError(controlName: string, errorName: string): boolean {
+    const control = this.songForm.get(controlName);
+    return !!control && control.hasError(errorName) && (control.dirty || control.touched);
+  }
+
+  hasFormValidationErrors(): boolean {
+    return this.songForm.invalid;
+  }
+
+  canSave(): boolean {
+    if (this.songForm.disabled) {
+      return false;
+    }
+
+    if (!this.readonly.value) {
+      return this.jsonValidationErrors.length === 0 && hasTrimmedValue(this.outputForm.value);
+    }
+
+    return !this.hasFormValidationErrors() && !this.hasLyricsValidationErrors();
+  }
+
   save() {
     if (this.readonly.value) {
+      this.songForm.markAllAsTouched();
+
+      if (this.hasFormValidationErrors()) {
+        this.response = 'Fix required song fields and lyric rows before saving.';
+        return;
+      }
+
       this.output = this.createFormSong();
     } else {
-      this.output = JSON.parse(this.outputForm.value);
+      const result = this.validateAdvancedJson();
+
+      if (result.errors.length > 0) {
+        this.response = 'Fix advanced JSON errors before saving.';
+        return;
+      }
+
+      this.output = result.song;
     }
 
     this.response = '';
     this.setFormsEnabled(false);
-    this.adminService.setSong(this.output.id, this.output).subscribe(
-      () => {
-        this.response = 'Song saved!';
-        this.setFormsEnabled(true);
-      },
-      err => {
-        this.response = err;
-        this.setFormsEnabled(true);
-      },
+    const metadata = this.createSongMetadata(this.output);
+    this.adminService
+      .setSong(this.output.id, this.output)
+      .pipe(
+        catchError(err => {
+          return throwError(() => new Error(`Song write failed: ${this.formatError(err)}`));
+        }),
+        concatMap(() =>
+          this.adminService.setSongMetadata(this.output.id, metadata).pipe(
+            catchError(err => {
+              return throwError(() => new Error(`Metadata write failed: ${this.formatError(err)}`));
+            }),
+          ),
+        ),
+      )
+      .subscribe(
+        () => {
+          this.upsertSongMetadata(metadata);
+          this.response = 'Song and metadata saved!';
+          this.setFormsEnabled(true);
+        },
+        err => {
+          this.response = this.formatError(err);
+          this.setFormsEnabled(true);
+        },
+      );
+  }
+
+  addLyricRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'lyric',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  addTextRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'text',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  addBreakRowForm(index: number = this.lyricRowsForm.length) {
+    this.insertLyricRow(index, {
+      type: 'break',
+      zht: '',
+      zhp: '',
+      eng: '',
+      text: '',
+    });
+  }
+
+  duplicateLyricRowForm(index: number) {
+    const row = this.lyricRowsForm.at(index);
+    if (!row) {
+      return;
+    }
+
+    this.insertLyricRow(index + 1, row.getRawValue() as LyricRowValue);
+  }
+
+  removeLyricRowForm(index: number) {
+    if (index < 0 || index >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    this.lyricRowsForm.removeAt(index);
+    this.markLyricsRowsChanged();
+  }
+
+  moveLyricRowForm(index: number, direction: -1 | 1) {
+    const nextIndex = index + direction;
+    if (index < 0 || nextIndex < 0 || index >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    if (nextIndex >= this.lyricRowsForm.length) {
+      return;
+    }
+
+    const row = this.lyricRowsForm.at(index);
+    this.lyricRowsForm.removeAt(index);
+    this.lyricRowsForm.insert(nextIndex, row);
+    this.markLyricsRowsChanged();
+  }
+
+  getLyricRowType(index: number): LyricRowType {
+    const type = this.lyricRowsForm.at(index)?.get('type')?.value;
+    if (type === 'break' || type === 'text') {
+      return type;
+    }
+
+    return 'lyric';
+  }
+
+  get previewSong(): Song {
+    return this.createFormSong();
+  }
+
+  selectPreviewRow(index: number) {
+    this.selectedPreviewRowIndex = index;
+  }
+
+  focusPreviewRow(index: number) {
+    this.focusedPreviewRowIndex = index;
+  }
+
+  blurPreviewRow(index: number) {
+    if (this.focusedPreviewRowIndex === index) {
+      this.focusedPreviewRowIndex = null;
+    }
+  }
+
+  isLyricRowHighlighted(index: number): boolean {
+    return this.selectedPreviewRowIndex === index || this.focusedPreviewRowIndex === index;
+  }
+
+  getLyricRowErrors(index: number): string[] {
+    const row = this.lyricRowsForm.at(index);
+    if (!row || !row.errors) {
+      return [];
+    }
+
+    const errors = row.errors;
+    const messages: string[] = [];
+
+    if (errors.typeRequired) {
+      messages.push('Row type is required.');
+    }
+
+    if (errors.zhtRequired) {
+      messages.push('Traditional Chinese lyric is required.');
+    }
+
+    if (errors.zhpRequired) {
+      messages.push('Pinyin lyric is required.');
+    }
+
+    if (errors.engRequired) {
+      messages.push('English translation is required.');
+    }
+
+    if (errors.textRequired) {
+      messages.push('Text row content is required.');
+    }
+
+    return messages;
+  }
+
+  toggleLyricsImport() {
+    this.showLyricsImport = !this.showLyricsImport;
+  }
+
+  openSpreadsheetImportDialog() {
+    this.showSpreadsheetImport = true;
+    this.response = '';
+    this.previewSpreadsheetImport();
+  }
+
+  closeSpreadsheetImportDialog() {
+    this.showSpreadsheetImport = false;
+  }
+
+  previewSpreadsheetImport(): LyricsImportResult {
+    this.spreadsheetImportResult = this.lyricsImporter.parse(this.spreadsheetImport.value || '', {
+      mode: this.spreadsheetImportMode.value || 'three-column',
+      delimiter: this.spreadsheetImportDelimiter.value || 'auto',
+      blankRowsAsBreaks: !!this.blankSpreadsheetRowsAsBreaks.value,
+    });
+
+    return this.spreadsheetImportResult;
+  }
+
+  canApplySpreadsheetImport(): boolean {
+    return (
+      !this.songForm.disabled &&
+      this.spreadsheetImportDiagnostics.length === 0 &&
+      this.spreadsheetImportPreviewRows.length > 0
     );
+  }
+
+  applySpreadsheetImport() {
+    const result = this.previewSpreadsheetImport();
+
+    if (result.diagnostics.length > 0) {
+      this.response = 'Fix spreadsheet import errors before applying rows.';
+      return;
+    }
+
+    if (result.lines.length === 0) {
+      this.response = 'Paste rows before applying import.';
+      return;
+    }
+
+    this.setLyricRows(result.lines);
+    this.lyricRowsForm.markAsDirty();
+    this.songForm.markAsDirty();
+    this.response = `Imported ${result.lines.length} lyric row${result.lines.length === 1 ? '' : 's'}.`;
+    this.showSpreadsheetImport = false;
+  }
+
+  spreadsheetImportFormatLabel(): string {
+    return this.spreadsheetImportResult.delimiter === 'tab' ? 'TSV' : 'CSV';
+  }
+
+  importLyricsFromRaw() {
+    const result = this.validateLyrics();
+    if (result.diagnostics.length > 0) {
+      this.response = 'Fix import validation errors before importing lyrics.';
+      return;
+    }
+
+    this.setLyricRows(result.lines);
+    this.lyricRowsForm.markAsDirty();
+    this.songForm.markAsDirty();
+    this.response = `Imported ${result.lines.length} lyric row${
+      result.lines.length === 1 ? '' : 's'
+    }.`;
+    this.showLyricsImport = false;
+  }
+
+  validateAdvancedJson(value: string = this.outputForm.value || ''): {
+    song: Song | null;
+    errors: string[];
+  } {
+    const result = this.parseAdvancedJson(value);
+    this.jsonValidationErrors = result.errors;
+    return result;
+  }
+
+  private trimFormValue(controlName: string): string {
+    return (this.songForm.get(controlName).value || '').trim();
+  }
+
+  private insertLyricRow(index: number, row: LyricRowValue) {
+    this.lyricRowsForm.insert(index, this.createLyricRowForm(row));
+    this.markLyricsRowsChanged();
+  }
+
+  private createLyricRowForm(row: LyricRowValue) {
+    return this.fb.group(
+      {
+        type: [row.type],
+        zht: [row.zht],
+        zhp: [row.zhp],
+        eng: [row.eng],
+        text: [row.text],
+      },
+      { validators: lyricRowValidator },
+    );
+  }
+
+  private setLyricRows(lines: Line[]) {
+    this.lyricRowsForm.clear();
+    lines.forEach(line => {
+      this.lyricRowsForm.push(this.createLyricRowForm(this.createLyricRowValue(line)));
+    });
+    this.lyricRowsForm.updateValueAndValidity();
+    this.lyricRowsForm.markAsPristine();
+    this.selectedPreviewRowIndex = null;
+    this.focusedPreviewRowIndex = null;
+    this.syncGeneratedJson();
+  }
+
+  private createLyricRowValue(line: Line): LyricRowValue {
+    return {
+      type: line.type || 'lyric',
+      zht: line.type === 'lyric' ? line.zht || '' : '',
+      zhp: line.type === 'lyric' ? line.zhp || '' : '',
+      eng: line.type === 'lyric' ? line.eng || '' : '',
+      text: line.type === 'text' ? line.text || '' : '',
+    };
+  }
+
+  private createLyricsFromRows(): Line[] {
+    return this.lyricRowsForm.controls.map(row => {
+      return this.createLineFromRowValue(row.getRawValue() as LyricRowValue);
+    });
+  }
+
+  private createLineFromRowValue(row: LyricRowValue): Line {
+    switch (row.type) {
+      case 'lyric':
+        return createLyricLine(row.zht || '', row.zhp || '', row.eng || '');
+      case 'text':
+        return createTextLine(row.text || '');
+      case 'break':
+        return createBreakLine();
+    }
+  }
+
+  private formatLinesAsControlTokens(lines: Line[]): string {
+    return lines
+      .map(line => {
+        switch (line.type) {
+          case 'lyric':
+            return ['L', line.zht || '', line.zhp || '', line.eng || ''].join('\n');
+          case 'break':
+            return 'B';
+          case 'text':
+            return ['T', line.text || ''].join('\n');
+        }
+      })
+      .join('\n\n');
+  }
+
+  private markLyricsRowsChanged() {
+    this.lyricRowsForm.markAsDirty();
+    this.lyricRowsForm.updateValueAndValidity();
+    this.clearPreviewRowStateIfOutOfRange();
+    this.syncGeneratedJson();
+  }
+
+  private syncGeneratedJson(force: boolean = false) {
+    if (!force && !this.readonly.value) {
+      return;
+    }
+
+    this.output = this.createFormSong();
+    this.outputForm.setValue(JSON.stringify(this.output, null, 2), {
+      emitEvent: false,
+    });
+
+    if (this.readonly.value) {
+      this.jsonValidationErrors = [];
+    } else {
+      this.validateAdvancedJson();
+    }
+  }
+
+  private parseAdvancedJson(value: string): { song: Song | null; errors: string[] } {
+    if (!hasTrimmedValue(value)) {
+      return { song: null, errors: ['JSON is required.'] };
+    }
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(value);
+    } catch (err) {
+      return { song: null, errors: [`JSON parse failed: ${this.formatError(err)}`] };
+    }
+
+    const errors = this.validateSongObject(parsed);
+    return {
+      song: errors.length > 0 ? null : this.normalizeParsedSong(parsed),
+      errors,
+    };
+  }
+
+  private validateSongObject(value: any): string[] {
+    const errors: string[] = [];
+
+    if (!this.isPlainObject(value)) {
+      return ['JSON must be a song object.'];
+    }
+
+    this.requireTrimmedString(value, 'id', 'Song ID', errors);
+
+    if (value.disabled !== undefined && typeof value.disabled !== 'boolean') {
+      errors.push('Disabled must be a boolean when provided.');
+    }
+
+    if (!this.isPlainObject(value.title)) {
+      errors.push('Title must be an object.');
+    } else {
+      if (!this.isPlainObject(value.title.chinese)) {
+        errors.push('Chinese title must be an object.');
+      } else {
+        this.requireTrimmedString(value.title.chinese, 'zht', 'Traditional Chinese title', errors);
+        this.requireTrimmedString(value.title.chinese, 'zhp', 'Pinyin title', errors);
+        this.requireTrimmedString(value.title.chinese, 'eng', 'English title translation', errors);
+      }
+
+      this.requireTrimmedString(value.title, 'english', 'English title', errors);
+    }
+
+    this.requireStringWhenPresent(value, 'lyricist', 'Lyricist', errors);
+    this.requireStringWhenPresent(value, 'composer', 'Composer', errors);
+    this.requireStringWhenPresent(value, 'arranger', 'Arranger', errors);
+
+    if (!Array.isArray(value.lyrics)) {
+      errors.push('Lyrics must be an array.');
+    } else {
+      value.lyrics.forEach((line: any, index: number) => {
+        this.validateLineObject(line, index, errors);
+      });
+    }
+
+    return errors;
+  }
+
+  private validateLineObject(line: any, index: number, errors: string[]) {
+    const rowLabel = `Lyric row ${index + 1}`;
+
+    if (!this.isPlainObject(line)) {
+      errors.push(`${rowLabel} must be an object.`);
+      return;
+    }
+
+    if (line.type === 'lyric') {
+      this.requireTrimmedString(line, 'zht', `${rowLabel} Traditional Chinese`, errors);
+      this.requireTrimmedString(line, 'zhp', `${rowLabel} pinyin`, errors);
+      this.requireTrimmedString(line, 'eng', `${rowLabel} English translation`, errors);
+    } else if (line.type === 'text') {
+      this.requireTrimmedString(line, 'text', `${rowLabel} text`, errors);
+    } else if (line.type !== 'break') {
+      errors.push(`${rowLabel} has an unsupported type.`);
+    }
+  }
+
+  private normalizeParsedSong(value: any): Song {
+    const song = value as Song;
+    song.lyricist = typeof song.lyricist === 'string' ? song.lyricist : '';
+    song.composer = typeof song.composer === 'string' ? song.composer : '';
+    song.arranger = typeof song.arranger === 'string' ? song.arranger : '';
+    song.disabled = typeof song.disabled === 'boolean' ? song.disabled : false;
+    return song;
+  }
+
+  private requireTrimmedString(value: any, key: string, label: string, errors: string[]) {
+    if (typeof value?.[key] !== 'string' || value[key].trim().length === 0) {
+      errors.push(`${label} is required.`);
+    }
+  }
+
+  private requireStringWhenPresent(value: any, key: string, label: string, errors: string[]) {
+    if (value[key] !== undefined && typeof value[key] !== 'string') {
+      errors.push(`${label} must be a string when provided.`);
+    }
+  }
+
+  private isPlainObject(value: any): boolean {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private clearPreviewRowStateIfOutOfRange() {
+    if (
+      this.selectedPreviewRowIndex !== null &&
+      this.selectedPreviewRowIndex >= this.lyricRowsForm.length
+    ) {
+      this.selectedPreviewRowIndex = null;
+    }
+
+    if (
+      this.focusedPreviewRowIndex !== null &&
+      this.focusedPreviewRowIndex >= this.lyricRowsForm.length
+    ) {
+      this.focusedPreviewRowIndex = null;
+    }
+  }
+
+  private upsertSongMetadata(metadata: SongMetadata) {
+    if (!this.songMds) {
+      return;
+    }
+
+    const nextSongMds = this.songMds.filter(song => song.id !== metadata.id);
+    nextSongMds.push(metadata);
+    this.songMds = nextSongMds.sort((a, b) => a.id.localeCompare(b.id));
+    this.search.setValue(metadata.id, { emitEvent: false });
+  }
+
+  private formatError(err: any): string {
+    if (err instanceof Error) {
+      return err.message;
+    }
+
+    if (typeof err === 'string') {
+      return err;
+    }
+
+    return JSON.stringify(err);
   }
 }

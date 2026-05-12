@@ -1,8 +1,13 @@
 <div class="content">
+  <a mat-button [routerLink]="['/admin']" class="admin-back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Admin
+  </a>
   <h2>Album Creator</h2>
   <div>
     <mat-form-field appearance="outline" class="search-field">
-      <mat-select placeholder="Select an album" [formControl]="search">
+      <mat-label>Select an album</mat-label>
+      <mat-select [formControl]="search">
         @for (album of albums; track i; let i = $index) {
           <mat-option [value]="album.id">
             {{ album.id }} - {{ album.title.chinese.zht }}
@@ -14,7 +19,8 @@
   </div>
   <form [formGroup]="albumForm">
     <mat-form-field class="meta-field">
-      <input matInput formControlName="albumId" placeholder="Album ID" />
+      <mat-label>Album ID</mat-label>
+      <input matInput formControlName="albumId" />
     </mat-form-field>
     <div class="disable-album">
       <mat-checkbox
@@ -35,23 +41,21 @@
     </mat-form-field>
     <div>
       <mat-form-field class="title-field">
-        <input matInput placeholder="English title" formControlName="englishTitle" />
+        <mat-label>English title</mat-label>
+        <input matInput formControlName="englishTitle" />
       </mat-form-field>
     </div>
     <div>
       <mat-form-field class="meta-field">
-        <input
-          matInput
-          placeholder="Release date"
-          [matDatepicker]="picker"
-          formControlName="releaseDate"
-        />
+        <mat-label>Release date</mat-label>
+        <input matInput [matDatepicker]="picker" formControlName="releaseDate" />
         <mat-datepicker-toggle matSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker disabled="false"></mat-datepicker>
       </mat-form-field>
     </div>
     <mat-form-field class="album-type">
-      <mat-select placeholder="Album type" formControlName="albumType">
+      <mat-label>Album type</mat-label>
+      <mat-select formControlName="albumType">
         <mat-option value="studio"> Studio Album </mat-option>
         <mat-option value="compilation"> Compilation </mat-option>
         <mat-option value="ep"> EP </mat-option>
@@ -61,9 +65,10 @@
     <div>Tracks:</div>
     @for (item of tracksForm.controls; track item; let i = $index) {
       <div formArrayName="tracks">
-        <mat-form-field floatLabel="never" class="track-select">
+        <mat-form-field class="track-select">
+          <mat-label>Track {{ i + 1 }}</mat-label>
           <span matPrefix class="track-num">{{ i + 1 }}</span>
-          <mat-select placeholder="Select a track" [formControlName]="i" class="song">
+          <mat-select [formControlName]="i" class="song">
             @for (song of songs; track song.id) {
               <mat-option [value]="song.id">
                 {{ song.id }} - {{ song.title.chinese.zht }}
@@ -116,6 +121,7 @@
   <div [class.hide]="hideOutput">
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
+      <mat-label>Generated JSON</mat-label>
       <textarea
         matInput
         rows="10"

@@ -1,8 +1,13 @@
 <div class="content">
+  <a mat-button [routerLink]="['/admin']" class="admin-back-link">
+    <mat-icon>arrow_back</mat-icon>
+    Admin
+  </a>
   <h2>Song Creator</h2>
   <div>
     <mat-form-field appearance="outline" class="search-field">
-      <mat-select placeholder="Select a song" [formControl]="search">
+      <mat-label>Select a song</mat-label>
+      <mat-select [formControl]="search">
         @for (song of songMds; track song.id) {
           <mat-option [value]="song.id"> {{ song.id }} - {{ song.title.chinese.zht }} </mat-option>
         }
@@ -10,83 +15,486 @@
     </mat-form-field>
     <span class="search-error">{{ this.searchError }}</span>
   </div>
-  <form [formGroup]="songForm">
-    <mat-form-field class="meta-field">
-      <input matInput formControlName="songId" placeholder="Song ID" />
-    </mat-form-field>
-    <div class="disable-song">
-      <mat-checkbox
-        formControlName="disabled"
-        matTooltip="Check to prevent users from clicking on this song"
+  <div class="editor-layout">
+    <form [formGroup]="songForm" class="editor-form">
+      <mat-form-field class="meta-field">
+        <mat-label>Song ID</mat-label>
+        <input matInput formControlName="songId" />
+        @if (hasFieldError('songId', 'required')) {
+          <mat-error>Song ID is required.</mat-error>
+        }
+      </mat-form-field>
+      <div class="disable-song">
+        <mat-checkbox
+          formControlName="disabled"
+          matTooltip="Check to prevent users from clicking on this song"
+        >
+          Disabled
+        </mat-checkbox>
+      </div>
+      <div>
+        <mat-form-field class="title-field">
+          <mat-label>Traditional Chinese title</mat-label>
+          <input matInput formControlName="traditionalTitle" />
+          @if (hasFieldError('traditionalTitle', 'required')) {
+            <mat-error>Traditional Chinese title is required.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="title-field">
+          <mat-label>Pinyin title</mat-label>
+          <input matInput formControlName="pinyinTitle" />
+          @if (hasFieldError('pinyinTitle', 'required')) {
+            <mat-error>Pinyin title is required.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="title-field">
+          <mat-label>English title translation</mat-label>
+          <input matInput formControlName="titleTranslation" />
+          @if (hasFieldError('titleTranslation', 'required')) {
+            <mat-error>English title translation is required.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="title-field">
+          <mat-label>English title</mat-label>
+          <input matInput formControlName="englishTitle" />
+          @if (hasFieldError('englishTitle', 'required')) {
+            <mat-error>English title is required.</mat-error>
+          }
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="meta-field">
+          <mat-label>Lyricist</mat-label>
+          <input matInput formControlName="lyricist" />
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="meta-field">
+          <mat-label>Composer</mat-label>
+          <input matInput formControlName="composer" />
+        </mat-form-field>
+      </div>
+      <div>
+        <mat-form-field class="meta-field">
+          <mat-label>Arranger</mat-label>
+          <input matInput formControlName="arranger" />
+        </mat-form-field>
+      </div>
+      <section class="lyrics-editor">
+        <div class="lyrics-header">
+          <h3>Lyrics</h3>
+          <div class="lyrics-header-actions">
+            <button
+              mat-button
+              type="button"
+              class="import-toggle"
+              (click)="openSpreadsheetImportDialog()"
+              [disabled]="songForm.disabled"
+            >
+              <mat-icon>upload_file</mat-icon>
+              Paste/import
+            </button>
+            <button
+              mat-button
+              type="button"
+              class="import-toggle"
+              (click)="toggleLyricsImport()"
+              [disabled]="songForm.disabled"
+            >
+              <mat-icon>{{ showLyricsImport ? 'expand_less' : 'code' }}</mat-icon>
+              Raw import
+            </button>
+          </div>
+        </div>
+        <div class="lyrics-toolbar">
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="addLyricRowForm()"
+            [disabled]="songForm.disabled"
+          >
+            <mat-icon>add</mat-icon>
+            Lyric
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="addTextRowForm()"
+            [disabled]="songForm.disabled"
+          >
+            <mat-icon>notes</mat-icon>
+            Text
+          </button>
+          <button
+            mat-flat-button
+            color="primary"
+            type="button"
+            (click)="addBreakRowForm()"
+            [disabled]="songForm.disabled"
+          >
+            <mat-icon>horizontal_rule</mat-icon>
+            Break
+          </button>
+        </div>
+        @if (showLyricsImport) {
+          <div class="lyrics-import">
+            <mat-form-field class="input-field" appearance="outline">
+              <mat-label>Raw lyrics import</mat-label>
+              <textarea matInput rows="10" [formControl]="lyricsImport"></textarea>
+            </mat-form-field>
+            @if (lyricsDiagnostics.length > 0) {
+              <div class="lyrics-errors" aria-live="polite">
+                @for (diagnostic of lyricsDiagnostics; track $index) {
+                  <div class="lyrics-error">
+                    Line {{ diagnostic.lineNumber }}: {{ diagnostic.message }}
+                  </div>
+                }
+              </div>
+            }
+            <button
+              mat-flat-button
+              color="accent"
+              type="button"
+              class="import-button"
+              (click)="importLyricsFromRaw()"
+              [disabled]="lyricsImport.disabled || lyricsDiagnostics.length > 0"
+            >
+              <mat-icon>publish</mat-icon>
+              Import into rows
+            </button>
+          </div>
+        }
+        @if (showSpreadsheetImport) {
+          <div class="import-dialog-backdrop">
+            <section
+              class="import-dialog"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="spreadsheet-import-title"
+            >
+              <div class="import-dialog-header">
+                <h4 id="spreadsheet-import-title">Paste/import lyrics</h4>
+                <button
+                  mat-icon-button
+                  type="button"
+                  matTooltip="Close"
+                  aria-label="Close import dialog"
+                  (click)="closeSpreadsheetImportDialog()"
+                >
+                  <mat-icon>close</mat-icon>
+                </button>
+              </div>
+              <div class="import-options">
+                <mat-form-field class="import-option-field">
+                  <mat-label>Import mode</mat-label>
+                  <mat-select [formControl]="spreadsheetImportMode">
+                    <mat-option value="three-column">Three-column lyrics</mat-option>
+                    <mat-option value="structured">Structured rows</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-form-field class="import-option-field">
+                  <mat-label>Format</mat-label>
+                  <mat-select [formControl]="spreadsheetImportDelimiter">
+                    <mat-option value="auto">Auto-detect</mat-option>
+                    <mat-option value="tab">TSV</mat-option>
+                    <mat-option value="comma">CSV</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <mat-checkbox [formControl]="blankSpreadsheetRowsAsBreaks">
+                  Blank rows become breaks
+                </mat-checkbox>
+              </div>
+              <mat-form-field class="input-field" appearance="outline">
+                <mat-label>Paste spreadsheet or CSV rows</mat-label>
+                <textarea matInput rows="10" [formControl]="spreadsheetImport"></textarea>
+              </mat-form-field>
+              <div class="import-detected-format">
+                Previewing as {{ spreadsheetImportFormatLabel() }}
+              </div>
+              @if (spreadsheetImportDiagnostics.length > 0) {
+                <div class="lyrics-errors" aria-live="polite">
+                  @for (diagnostic of spreadsheetImportDiagnostics; track $index) {
+                    <div class="lyrics-error">
+                      Row {{ diagnostic.rowNumber }}
+                      @if (diagnostic.field) {
+                        <span>, {{ diagnostic.field }}</span>
+                      }
+                      : {{ diagnostic.message }}
+                    </div>
+                  }
+                </div>
+              }
+              <div class="import-preview">
+                <h5>Preview</h5>
+                @if (spreadsheetImportPreviewRows.length === 0) {
+                  <div class="empty-lyrics">No rows to import.</div>
+                }
+                @for (line of spreadsheetImportPreviewRows; track $index; let i = $index) {
+                  <div class="preview-row">
+                    <span class="preview-index">{{ i + 1 }}</span>
+                    @switch (line.type) {
+                      @case ('lyric') {
+                        <div class="preview-lyric">
+                          <span>{{ line.zht }}</span>
+                          <span>{{ line.zhp }}</span>
+                          <span>{{ line.eng }}</span>
+                        </div>
+                      }
+                      @case ('text') {
+                        <div class="preview-text">{{ line.text }}</div>
+                      }
+                      @case ('break') {
+                        <div class="preview-break">Paragraph break</div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+              <div class="import-dialog-actions">
+                <button mat-button type="button" (click)="closeSpreadsheetImportDialog()">
+                  <mat-icon>close</mat-icon>
+                  Cancel
+                </button>
+                <button
+                  mat-flat-button
+                  color="accent"
+                  type="button"
+                  (click)="applySpreadsheetImport()"
+                  [disabled]="!canApplySpreadsheetImport()"
+                >
+                  <mat-icon>publish</mat-icon>
+                  Apply import
+                </button>
+              </div>
+            </section>
+          </div>
+        }
+        <div formArrayName="lyricRows" class="lyrics-rows">
+          @if (lyricRowsForm.length === 0) {
+            <div class="empty-lyrics">No lyric rows.</div>
+          }
+          @for (row of lyricRowsForm.controls; track row; let i = $index) {
+            <div
+              class="lyric-row"
+              [class.lyric-row-preview-active]="isLyricRowHighlighted(i)"
+              [formGroupName]="i"
+            >
+              <div class="row-header">
+                <span class="row-index">{{ i + 1 }}</span>
+                <mat-form-field class="row-type">
+                  <mat-label>Type</mat-label>
+                  <mat-select formControlName="type">
+                    <mat-option value="lyric">Lyric</mat-option>
+                    <mat-option value="text">Text</mat-option>
+                    <mat-option value="break">Break</mat-option>
+                  </mat-select>
+                </mat-form-field>
+                <div class="row-controls">
+                  <button
+                    mat-icon-button
+                    type="button"
+                    matTooltip="Move up"
+                    aria-label="Move row up"
+                    (click)="moveLyricRowForm(i, -1)"
+                    [disabled]="songForm.disabled || i === 0"
+                  >
+                    <mat-icon>arrow_upward</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    matTooltip="Move down"
+                    aria-label="Move row down"
+                    (click)="moveLyricRowForm(i, 1)"
+                    [disabled]="songForm.disabled || i === lyricRowsForm.length - 1"
+                  >
+                    <mat-icon>arrow_downward</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    type="button"
+                    matTooltip="Duplicate"
+                    aria-label="Duplicate row"
+                    (click)="duplicateLyricRowForm(i)"
+                    [disabled]="songForm.disabled"
+                  >
+                    <mat-icon>content_copy</mat-icon>
+                  </button>
+                  <button
+                    mat-icon-button
+                    color="warn"
+                    type="button"
+                    matTooltip="Delete"
+                    aria-label="Delete row"
+                    (click)="removeLyricRowForm(i)"
+                    [disabled]="songForm.disabled"
+                  >
+                    <mat-icon>delete</mat-icon>
+                  </button>
+                </div>
+              </div>
+              @switch (getLyricRowType(i)) {
+                @case ('lyric') {
+                  <div class="lyric-fields">
+                    <mat-form-field class="line-field">
+                      <mat-label>Traditional Chinese</mat-label>
+                      <input matInput formControlName="zht" />
+                    </mat-form-field>
+                    <mat-form-field class="line-field">
+                      <mat-label>Pinyin</mat-label>
+                      <input matInput formControlName="zhp" />
+                    </mat-form-field>
+                    <mat-form-field class="line-field">
+                      <mat-label>English translation</mat-label>
+                      <input matInput formControlName="eng" />
+                    </mat-form-field>
+                  </div>
+                }
+                @case ('text') {
+                  <mat-form-field class="text-row-field">
+                    <mat-label>Text</mat-label>
+                    <input matInput formControlName="text" />
+                  </mat-form-field>
+                }
+                @case ('break') {
+                  <div class="break-row-label">Paragraph break</div>
+                }
+              }
+              @if (getLyricRowErrors(i).length > 0) {
+                <div class="row-errors" aria-live="polite">
+                  @for (error of getLyricRowErrors(i); track error) {
+                    <div class="row-error">{{ error }}</div>
+                  }
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </section>
+      <button
+        mat-flat-button
+        color="accent"
+        type="button"
+        class="action-button"
+        (click)="save()"
+        [disabled]="!canSave()"
       >
-        Disabled
-      </mat-checkbox>
-    </div>
-    <mat-form-field class="title-field" appearance="outline">
-      <mat-label>Chinese title, pinyin and translation</mat-label>
-      <textarea
-        matInput
-        rows="3"
-        formControlName="chineseTitle"
-        placeholder="Enter each on a new line"
-      ></textarea>
-    </mat-form-field>
-    <div>
-      <mat-form-field class="title-field">
-        <input matInput placeholder="English title" formControlName="englishTitle" />
-      </mat-form-field>
-    </div>
-    <div>
-      <mat-form-field class="meta-field">
-        <input matInput placeholder="Lyricist" formControlName="lyricist" />
-      </mat-form-field>
-    </div>
-    <div>
-      <mat-form-field class="meta-field">
-        <input matInput placeholder="Composer" formControlName="composer" />
-      </mat-form-field>
-    </div>
-    <div>
-      <mat-form-field class="meta-field">
-        <input matInput placeholder="Arranger" formControlName="arranger" />
-      </mat-form-field>
-    </div>
-    <mat-form-field class="input-field" appearance="outline">
-      <mat-label>Lyrics</mat-label>
-      <textarea matInput rows="10" formControlName="lyrics"></textarea>
-    </mat-form-field>
-    <button
-      mat-flat-button
-      color="accent"
-      class="action-button"
-      (click)="save()"
-      [disabled]="songForm.disabled"
-    >
-      Save
-    </button>
-    <button
-      mat-flat-button
-      color="primary"
-      class="action-button"
-      (click)="generateJson()"
-      [disabled]="songForm.disabled"
-    >
-      Generate JSON
-    </button>
-    <button
-      mat-flat-button
-      color="primary"
-      class="action-button"
-      (click)="clear()"
-      [disabled]="songForm.disabled"
-    >
-      Clear
-    </button>
-  </form>
+        Save
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="action-button"
+        (click)="generateJson()"
+        [disabled]="songForm.disabled"
+      >
+        <mat-icon>data_object</mat-icon>
+        Advanced JSON
+      </button>
+      <button
+        mat-flat-button
+        color="primary"
+        type="button"
+        class="action-button"
+        (click)="clear()"
+        [disabled]="songForm.disabled"
+      >
+        Clear
+      </button>
+    </form>
+    <aside class="preview-panel" aria-label="Live song preview">
+      <h3>Live preview</h3>
+      @if (previewSong; as song) {
+        <div class="song-preview">
+          <div class="song-header">
+            <div class="song-title">
+              <div class="title-chinese">{{ song.title.chinese.zht }}</div>
+              <div class="title-translation">
+                <span class="trans-pinyin">{{ song.title.chinese.zhp }}</span>
+                <br />
+                <span class="trans-english primary-dark">{{ song.title.chinese.eng }}</span>
+              </div>
+              <div class="title-english">{{ song.title.english }}</div>
+            </div>
+            @if (song.lyricist) {
+              <div class="song-tag lyricist">Lyricist: {{ song.lyricist }}</div>
+            }
+            @if (song.composer) {
+              <div class="song-tag composer">Composer: {{ song.composer }}</div>
+            }
+            @if (song.arranger) {
+              <div class="song-tag arranger">Arrangement by: {{ song.arranger }}</div>
+            }
+          </div>
+          <div class="song-content">
+            @if (song.lyrics.length === 0) {
+              <div class="empty-preview">No lyric rows.</div>
+            }
+            @for (lyric of song.lyrics; track $index; let i = $index) {
+              @switch (lyric.type) {
+                @case ('lyric') {
+                  <button
+                    class="line line-lyric preview-line-button"
+                    type="button"
+                    [class.preview-line-selected]="isLyricRowHighlighted(i)"
+                    (click)="selectPreviewRow(i)"
+                    (focus)="focusPreviewRow(i)"
+                    (blur)="blurPreviewRow(i)"
+                  >
+                    <span class="lyrics-chinese">{{ lyric.zht }}</span>
+                    <br />
+                    <span class="lyrics-pinyin">{{ lyric.zhp }}</span>
+                    <br />
+                    <span class="lyrics-english primary-dark">{{ lyric.eng }}</span>
+                  </button>
+                }
+                @case ('break') {
+                  <button
+                    class="line line-break preview-line-button"
+                    type="button"
+                    aria-label="Preview row {{ i + 1 }} paragraph break"
+                    [class.preview-line-selected]="isLyricRowHighlighted(i)"
+                    (click)="selectPreviewRow(i)"
+                    (focus)="focusPreviewRow(i)"
+                    (blur)="blurPreviewRow(i)"
+                  >
+                    <br />
+                  </button>
+                }
+                @case ('text') {
+                  <button
+                    class="line line-text preview-line-button"
+                    type="button"
+                    [class.preview-line-selected]="isLyricRowHighlighted(i)"
+                    (click)="selectPreviewRow(i)"
+                    (focus)="focusPreviewRow(i)"
+                    (blur)="blurPreviewRow(i)"
+                  >
+                    {{ lyric.text }}
+                  </button>
+                }
+              }
+            }
+          </div>
+        </div>
+      }
+    </aside>
+  </div>
   <div class="response">{{ this.response }}</div>
-  <div [class.hide]="hideOutput">
+  <section class="advanced-json" [class.hide]="hideOutput">
+    <h3>Advanced JSON</h3>
     <mat-checkbox [formControl]="readonly" class="readonly">Read-only</mat-checkbox>
     <mat-form-field class="output" appearance="outline">
+      <mat-label>Generated JSON</mat-label>
       <textarea
         matInput
         rows="10"
@@ -94,29 +502,12 @@
         [readonly]="readonly.value"
       ></textarea>
     </mat-form-field>
-  </div>
-  <mat-card class="helper">
-    <p>
-      <strong>L</strong> - translated song lyric<br />
-      <strong>B</strong> - paragraph break<br />
-      <strong>T</strong> - text
-    </p>
-    <p>Blank lines before control letters are optional.</p>
-    <b>Example:</b>
-    <p class="example">
-      L<br />
-      然後呢<br />
-      rán hòu ne<br />
-      And then?<br />
-      <br />
-      B<br />
-      <br />
-      L<br />
-      他們說你的心<br />
-      tā men shuō nǐ de xīn<br />
-      They said that your heart<br />
-      T<br />
-      Note: "好好" can mean "very good"
-    </p>
-  </mat-card>
+    @if (!readonly.value && jsonValidationErrors.length > 0) {
+      <div class="json-errors" aria-live="polite">
+        @for (error of jsonValidationErrors; track error) {
+          <div class="json-error">{{ error }}</div>
+        }
+      </div>
+    }
+  </section>
 </div>

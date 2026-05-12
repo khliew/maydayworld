@@ -117,6 +117,11 @@ describe('SongDetailComponent', () => {
       const line = testSong.lyrics[0];
       const lineEl = lineEls[0];
 
+      expect(line.type).toBe('lyric');
+      if (line.type !== 'lyric') {
+        throw new Error('Expected a lyric line.');
+      }
+
       const expectedChinese = line.zht;
       const expectedPinyin = line.zhp;
       const expectedEnglish = line.eng;
@@ -138,6 +143,11 @@ describe('SongDetailComponent', () => {
     it('should display a text line', () => {
       const line = testSong.lyrics[1];
       const lineEl = lineEls[1];
+
+      expect(line.type).toBe('text');
+      if (line.type !== 'text') {
+        throw new Error('Expected a text line.');
+      }
 
       const expectedText = line.text;
 

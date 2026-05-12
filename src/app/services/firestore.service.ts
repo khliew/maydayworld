@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core';
 import { doc, docSnapshots, Firestore } from '@angular/fire/firestore';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { Album, Discography, Song } from '../model';
+import { Album, Discography, parseFirestoreSong, Song } from '../model';
 
 @Injectable()
 export class FirestoreService {
@@ -36,7 +36,7 @@ export class FirestoreService {
     return docSnapshots(doc(this.firestore, `songs/${songId}`)).pipe(
       map(snapshot => {
         if (snapshot.exists) {
-          return snapshot.data() as Song;
+          return parseFirestoreSong(snapshot.data(), songId);
         } else {
           throw new Error(`song not found: ${songId}`);
         }

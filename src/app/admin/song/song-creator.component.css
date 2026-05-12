@@ -1,6 +1,18 @@
 .content {
   padding: 32px;
-  max-width: 720px;
+  max-width: 1280px;
+}
+.admin-back-link {
+  margin-bottom: 8px;
+}
+.editor-layout {
+  align-items: start;
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(0, 880px) minmax(320px, 1fr);
+}
+.editor-form {
+  min-width: 0;
 }
 .search-field {
   min-width: 96px;
@@ -25,12 +37,297 @@
   margin-top: 8px;
   margin-bottom: 16px;
   width: 100%;
-  height: 196px;
+}
+.lyrics-errors,
+.json-errors {
+  color: #b00020;
+  font-size: 13px;
+  line-height: 18px;
+  margin: -8px 0 8px;
+}
+.lyrics-editor {
+  margin-top: 8px;
+  max-width: 880px;
+}
+.lyrics-header,
+.lyrics-toolbar,
+.row-header,
+.row-controls,
+.lyrics-header-actions,
+.import-options,
+.import-dialog-header,
+.import-dialog-actions,
+.preview-row {
+  align-items: center;
+  display: flex;
+}
+.lyrics-header {
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.lyrics-header h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+.lyrics-header-actions,
+.import-dialog-actions {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.lyrics-toolbar {
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.lyrics-toolbar button,
+.import-toggle,
+.import-button {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+}
+.lyrics-import {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  margin-bottom: 16px;
+  padding: 16px;
+}
+.import-dialog-backdrop {
+  align-items: flex-start;
+  background: rgba(0, 0, 0, 0.42);
+  bottom: 0;
+  display: flex;
+  justify-content: center;
+  left: 0;
+  overflow: auto;
+  padding: 48px 16px;
+  position: fixed;
+  right: 0;
+  top: 0;
+  z-index: 1000;
+}
+.import-dialog {
+  background: #fff;
+  border-radius: 6px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.28);
+  max-width: 880px;
+  padding: 20px;
+  width: min(880px, 100%);
+}
+.import-dialog-header {
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+.import-dialog-header h4,
+.import-preview h5 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0;
+}
+.import-options {
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+.import-option-field {
+  min-width: 208px;
+}
+.import-detected-format {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  margin: -8px 0 12px;
+}
+.import-preview {
+  margin-top: 16px;
+}
+.import-preview h5 {
+  margin-bottom: 8px;
+}
+.preview-row {
+  border-top: 1px solid rgba(0, 0, 0, 0.12);
+  gap: 12px;
+  padding: 10px 0;
+}
+.preview-index {
+  color: rgba(0, 0, 0, 0.6);
+  flex: 0 0 32px;
+  font-size: 13px;
+  text-align: right;
+}
+.preview-lyric {
+  display: grid;
+  flex: 1;
+  gap: 8px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.preview-lyric span,
+.preview-text,
+.preview-break {
+  overflow-wrap: anywhere;
+}
+.preview-text,
+.preview-break {
+  flex: 1;
+}
+.preview-break {
+  color: rgba(0, 0, 0, 0.6);
+  font-style: italic;
+}
+.import-dialog-actions {
+  justify-content: flex-end;
+  margin-top: 16px;
+}
+.lyrics-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.empty-lyrics {
+  border: 1px dashed rgba(0, 0, 0, 0.26);
+  border-radius: 6px;
+  color: rgba(0, 0, 0, 0.6);
+  padding: 16px;
+}
+.lyric-row {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 12px;
+}
+.lyric-row-preview-active {
+  background: #f5fbff;
+  border-color: #0277bd;
+  box-shadow: 0 0 0 2px rgba(2, 119, 189, 0.16);
+}
+.row-header {
+  gap: 12px;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.row-index {
+  color: rgba(0, 0, 0, 0.6);
+  flex: 0 0 32px;
+  font-size: 13px;
+  text-align: right;
+}
+.row-type {
+  flex: 0 0 140px;
+}
+.row-controls {
+  gap: 4px;
+  margin-left: auto;
+}
+.lyric-fields {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr);
+}
+.line-field,
+.text-row-field {
+  width: 100%;
+}
+.break-row-label {
+  color: rgba(0, 0, 0, 0.64);
+  padding: 8px 0 12px 44px;
+}
+.row-errors {
+  color: #b00020;
+  font-size: 13px;
+  line-height: 18px;
+  margin-left: 44px;
 }
 .action-button {
   margin-bottom: 16px;
   margin-top: 16px;
   margin-right: 16px;
+}
+.action-button mat-icon {
+  margin-right: 6px;
+}
+.preview-panel {
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  border-radius: 6px;
+  padding: 20px;
+  position: sticky;
+  top: 16px;
+}
+.preview-panel h3,
+.advanced-json h3 {
+  font-size: 18px;
+  font-weight: 500;
+  margin: 0 0 16px;
+}
+.song-header {
+  margin-bottom: 64px;
+}
+.song-title {
+  margin-bottom: 32px;
+}
+.song-tag {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+.title-chinese {
+  font-size: 22px;
+}
+.title-translation {
+  color: gray;
+  padding-top: 4px;
+}
+.trans-pinyin {
+  font-size: 14px;
+  line-height: 16px;
+}
+.trans-english {
+  font-size: 16px;
+  line-height: 18px;
+}
+.title-english {
+  font-size: 22px;
+  margin-top: 16px;
+}
+.song-content {
+  font-size: 18px;
+  line-height: 20px;
+}
+.line {
+  margin-bottom: 16px;
+}
+.line-text {
+  line-height: 22px;
+}
+.lyrics-pinyin {
+  color: gray;
+  font-size: 14px;
+  line-height: 16px;
+}
+.lyrics-english {
+  font-size: 16px;
+}
+.preview-line-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  display: block;
+  font: inherit;
+  padding: 4px 8px;
+  text-align: left;
+  width: 100%;
+}
+.preview-line-button:focus-visible,
+.preview-line-selected {
+  background: #e1f5fe;
+  border-color: #0277bd;
+  outline: none;
+}
+.empty-preview {
+  color: rgba(0, 0, 0, 0.6);
+  font-size: 14px;
+}
+.advanced-json {
+  max-width: 960px;
 }
 .output {
   width: 100%;
@@ -43,18 +340,60 @@
 .response {
   margin-top: 16px;
 }
-.helper {
-  position: fixed;
-  width: 196px;
-  top: 64px;
-  left: 756px;
-  margin: 32px 0 0 16px;
-  background-color: white;
-  font-size: 12px;
-  line-height: 14px;
-}
-.example {
-  border: 1px solid rgba(0, 0, 0, 0.12);
-  border-radius: 5px;
-  padding: 4px;
+@media (max-width: 760px) {
+  .content {
+    padding: 20px;
+  }
+
+  .editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-panel {
+    position: static;
+  }
+
+  .lyrics-header,
+  .row-header,
+  .lyrics-header-actions,
+  .import-options,
+  .preview-row {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .row-index {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .row-type {
+    flex: 0 0 auto;
+    width: 100%;
+  }
+
+  .import-option-field,
+  .preview-lyric {
+    width: 100%;
+  }
+
+  .row-controls {
+    margin-left: 0;
+  }
+
+  .lyric-fields,
+  .preview-lyric {
+    grid-template-columns: 1fr;
+  }
+
+  .preview-index {
+    flex-basis: auto;
+    text-align: left;
+  }
+
+  .break-row-label,
+  .row-errors {
+    margin-left: 0;
+    padding-left: 0;
+  }
 }

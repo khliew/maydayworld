@@ -23,6 +23,12 @@ export class AdminService {
     return this.fss.getDiscography(artistId);
   }
 
+  setDiscography(artistId: string, discography: Discography): Observable<void> {
+    return from(
+      setDoc(doc(this.firestore, `discos/${artistId}`), JSON.parse(JSON.stringify(discography))),
+    );
+  }
+
   getAlbum(albumId: string): Observable<Album> {
     return this.fss.getAlbum(albumId);
   }
@@ -93,5 +99,14 @@ export class AdminService {
 
   setSong(songId: string, song: Song): Observable<void> {
     return from(setDoc(doc(this.firestore, `songs/${songId}`), JSON.parse(JSON.stringify(song))));
+  }
+
+  setSongMetadata(songId: string, songMetadata: SongMetadata): Observable<void> {
+    return from(
+      setDoc(
+        doc(this.firestore, `songMetadatas/${songId}`),
+        JSON.parse(JSON.stringify(songMetadata)),
+      ),
+    );
   }
 }
