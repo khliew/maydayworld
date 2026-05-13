@@ -103,6 +103,9 @@
     }
   },
   "cli": {
-    "packageManager": "pnpm"
+    "packageManager": "pnpm",
+    "cache": {
+      "path": ".angular/cache-21.2"
+    }
   }
 }

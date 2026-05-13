@@ -1,10 +1,17 @@
 import angular from '@analogjs/vite-plugin-angular';
-import tsconfigPaths from 'vite-tsconfig-paths';
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vitest/config';
+
+const workspaceRoot = fileURLToPath(new URL('.', import.meta.url));
 
 export default defineConfig(({ mode }) => {
   return {
-    plugins: [angular(), tsconfigPaths()],
+    root: workspaceRoot,
+    plugins: [angular()],
+    cacheDir: 'node_modules/.vite-vitest',
+    resolve: {
+      tsconfigPaths: true,
+    },
     test: {
       globals: true,
       environment: 'jsdom',
